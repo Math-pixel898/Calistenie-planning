@@ -70,6 +70,7 @@ const PROGRAMME = {
 
     // Gripper : nom du niveau de résistance selon le réglage en kg
     niveauxResistance: {
+      "2":  "Très basse résistance",
       "8":  "Basse résistance",
       "9":  "Résistance moyenne",
       "10": "Haute résistance",
@@ -700,7 +701,7 @@ const PROGRAMME = {
       nom: "Gripper — position à 90°", type: "reps", parCote: true, variante: true,
       muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 120],
-      niveau: "Basse résistance", chargeKg: 8,
+      niveau: "Très basse résistance", chargeKg: 2,
       etapes: [
         "Tiens le gripper tourné à 90° par rapport à la position normale.",
         "Place les doigts serrés sur la poignée.",
@@ -708,8 +709,9 @@ const PROGRAMME = {
         "Ouvre lentement.",
         "Fais la série avec une main, puis avec l'autre."
       ],
-      facile: "Un cran plus bas.",
-      difficile: "Un cran plus haut, après 2-3 semaines au top."
+      facile: "Le réglage le plus bas de ton gripper, ou moins de reps.",
+      difficile: "Un cran plus haut, seulement après 2-3 semaines au top.",
+      note: "Position très dure pour les tendons (ils travaillent en étirement) : on part très léger, ≈ 2 kg, et on monte très doucement. Monter d'1 kg à ce niveau, c'est déjà une grosse marche."
     },
     "grip-maintien": {
       nom: "Gripper — maintien fermé", type: "temps", parCote: true,
