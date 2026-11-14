@@ -245,3 +245,31 @@ details.carte > summary::after { content: " ▾"; color: var(--texte-doux); }
 .carte.resistance .etiquette { font-size: 0.75rem; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 0.03em; }
 .niveau-resistance { font-size: 1.4rem; font-weight: 800; margin: 2px 0 4px; }
 .carte.resistance .note { margin: 10px 0 0; }
+
+/* ---------- Séries et minuteur ---------- */
+.pastilles { display: flex; gap: 8px; margin: 6px 0 12px; flex-wrap: wrap; }
+.pastille {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  border: 2px solid var(--bord); font-weight: 700; color: var(--texte-doux);
+}
+.pastille.faite { background: var(--vert); border-color: var(--vert); color: var(--carte); }
+
+.minuteur {
+  position: fixed; left: 8px; right: 8px; z-index: 6; overflow: hidden;
+  bottom: calc(66px + env(safe-area-inset-bottom));
+  background: var(--carte); border: 2px solid var(--accent); border-radius: 16px;
+  padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  max-width: 624px; margin: 0 auto;
+}
+.minuteur-barre { position: absolute; left: 0; top: 0; height: 4px; background: var(--accent); transition: width 0.25s linear; }
+.minuteur-haut { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.minuteur-titre { font-weight: 600; font-size: 0.95rem; }
+.minuteur-temps { font-size: 1.9rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.minuteur-boutons { display: flex; gap: 6px; margin-top: 6px; }
+.minuteur-boutons button {
+  flex: 1; font: inherit; font-size: 0.9rem; font-weight: 600; padding: 10px 4px;
+  border-radius: 10px; border: 1px solid var(--bord); background: var(--fond); color: var(--texte); cursor: pointer;
+}
+.minuteur-boutons button.principal { flex: 1.6; background: var(--accent); color: var(--accent-texte); border: 0; }
+/* place pour la barre du minuteur sous le contenu */
+body.avec-minuteur { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }

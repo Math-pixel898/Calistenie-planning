@@ -530,6 +530,139 @@ function ecouter(champ, bouton) {
 }
 
 /* ---------------------------------------------------------------------
+   MINUTEUR (repos entre les séries, échauffement)
+   Une barre fixe en bas de l'écran. On garde l'heure de FIN plutôt
+   qu'un simple compteur : ainsi le temps reste juste même si le
+   téléphone ralentit l'app en arrière-plan.
+   --------------------------------------------------------------------- */
+const minuteur = {
+  titre: "", duree: 0,     // en secondes
+  fin: null,               // heure de fin (ms) quand il tourne
+  restant: null,           // secondes restantes quand il est en pause / pas lancé
+  ensuite: null,           // ce qu'on fait à la fin (optionnel)
+  intervalle: null, verrou: null
+};
+let audio = null; // pour le bip
+
+// Prépare un compte à rebours (sans le lancer, sauf si lancer = true)
+function preparerMinuteur({ titre, secondes, lancer = false, ensuite = null }) {
+  arreterTic();
+  Object.assign(minuteur, { titre, duree: secondes, fin: null, restant: secondes, ensuite });
+  if (lancer) lancerMinuteur(); else dessinerMinuteur();
+}
+
+function lancerMinuteur() {
+  // Le son doit être "débloqué" par un appui de l'utilisateur
+  try { audio = audio || new (window.AudioContext || window.webkitAudioContext)(); audio.resume(); } catch {}
+  // Garder l'écran allumé pendant le repos, si le téléphone le permet
+  try { navigator.wakeLock?.request("screen").then(v => { minuteur.verrou = v; }).catch(() => {}); } catch {}
+  minuteur.fin = Date.now() + minuteur.restant * 1000;
+  minuteur.restant = null;
+  arreterTic();
+  minuteur.intervalle = setInterval(tic, 250);
+  dessinerMinuteur();
+}
+
+function pauseMinuteur() {
+  minuteur.restant = Math.max(0, Math.ceil((minuteur.fin - Date.now()) / 1000));
+  minuteur.fin = null;
+  arreterTic();
+  dessinerMinuteur();
+}
+
+function ajouterTemps(sec) {
+  if (minuteur.fin) minuteur.fin = Math.max(Date.now() + 1000, minuteur.fin + sec * 1000);
+  else minuteur.restant = Math.max(5, minuteur.restant + sec);
+  dessinerMinuteur();
+}
+
+function fermerMinuteur() {
+  arreterTic();
+  minuteur.fin = null; minuteur.restant = null;
+  $("#minuteur").hidden = true;
+  document.body.classList.remove("avec-minuteur");
+}
+
+function arreterTic() {
+  clearInterval(minuteur.intervalle);
+  minuteur.intervalle = null;
+  try { minuteur.verrou?.release(); } catch {}
+  minuteur.verrou = null;
+}
+
+function tic() {
+  if (minuteur.fin && Date.now() >= minuteur.fin) {
+    signalFin();
+    const suite = minuteur.ensuite;
+    fermerMinuteur();
+    if (suite) suite(); else toast("⏰ Repos terminé : c'est reparti !");
+    return;
+  }
+  dessinerMinuteur();
+}
+
+// Bip + vibration à la fin (si le navigateur le permet)
+function signalFin() {
+  try { navigator.vibrate?.([300, 150, 300]); } catch {}
+  try {
+    if (!audio) return;
+    [0, 0.35].forEach(decalage => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880;
+      g.gain.setValueAtTime(0.25, audio.currentTime + decalage);
+      g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + decalage + 0.3);
+      o.connect(g).connect(audio.destination);
+      o.start(audio.currentTime + decalage);
+      o.stop(audio.currentTime + decalage + 0.3);
+    });
+  } catch {}
+}
+
+const mmss = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+function dessinerMinuteur() {
+  const zone = $("#minuteur");
+  if (minuteur.fin === null && minuteur.restant === null) { zone.hidden = true; return; }
+  const enCours = minuteur.fin !== null;
+  const reste = enCours ? Math.max(0, Math.ceil((minuteur.fin - Date.now()) / 1000)) : minuteur.restant;
+  const avancement = minuteur.duree ? 100 * (1 - reste / minuteur.duree) : 0;
+  zone.hidden = false;
+  document.body.classList.add("avec-minuteur");
+  zone.innerHTML = `
+    <div class="minuteur-barre" style="width:${avancement}%"></div>
+    <div class="minuteur-haut">
+      <span class="minuteur-titre">${esc(minuteur.titre)}</span>
+      <span class="minuteur-temps">${mmss(reste)}</span>
+    </div>
+    <div class="minuteur-boutons">
+      <button data-m="moins">−15 s</button>
+      ${enCours ? `<button data-m="pause" class="principal">⏸ Pause</button>`
+                : `<button data-m="lancer" class="principal">▶ ${minuteur.duree === reste ? "Lancer" : "Reprendre"}</button>`}
+      <button data-m="plus">+15 s</button>
+      <button data-m="passer">Passer</button>
+    </div>`;
+  zone.querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+    const action = b.dataset.m;
+    if (action === "lancer") lancerMinuteur();
+    else if (action === "pause") pauseMinuteur();
+    else if (action === "moins") ajouterTemps(-15);
+    else if (action === "plus") ajouterTemps(15);
+    else if (action === "passer") {
+      const suite = minuteur.ensuite;
+      fermerMinuteur();
+      if (suite) suite();
+    }
+  });
+}
+
+// Durée de repos proposée : le milieu de la fourchette, arrondi à 15 s
+const reposConseille = exo => Math.round((exo.repos[0] + exo.repos[1]) / 2 / 15) * 15;
+
+// Nombre de séries déjà validées aujourd'hui, par exercice (en mémoire seulement)
+const seriesValidees = {};
+const cleSeries = idExo => aujourdhuiISO() + "|" + idExo;
+
+/* ---------------------------------------------------------------------
    7. PAGES
    Chaque fonction "page..." renvoie { titre, html, retour?, apres? }.
    "apres" branche les boutons une fois la page affichée.
@@ -754,6 +887,16 @@ function pageExercice(idSeance, idExo, juste) {
       ? `<a class="bouton" href="#/exo/${idSeance}/${suivant}">Exercice suivant : ${esc(PROGRAMME.exercices[suivant]?.nom)} ›</a>`
       : `<a class="bouton" href="#/seance/${idSeance}">Séance terminée 🎉 Retour à la séance</a>`;
   } else {
+    const faites = seriesValidees[cleSeries(idExo)] || 0;
+    html += `<div class="carte" id="series-en-cours">
+      <h3>Séries : ${Math.min(faites, p.series)} / ${p.series}</h3>
+      <div class="pastilles">${Array.from({ length: p.series }, (_, k) =>
+        `<span class="pastille ${k < faites ? "faite" : ""}">${k + 1}</span>`).join("")}</div>
+      ${faites < p.series
+        ? `<button class="bouton" id="valider-serie">✓ Série ${faites + 1} faite</button>
+           <p class="doux">Après chaque série, un repos de ${mmss(reposConseille(exo))} te sera proposé (repos conseillé : ${texteRepos(exo.repos)}).</p>`
+        : `<p>Toutes les séries sont faites 💪 Dis-moi comment ça s'est passé :</p>`}
+    </div>`;
     html += `<div class="carte" id="suivi">
       <h3>Comment ça s'est passé ?</h3>
       <p class="doux">Objectif : ${p.series} × ${p.cible[1]} ${unite(exo)}${exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : ""}${avecCharge(exo) ? " à " + kg(p.chargeKg) : ""} (haut de la fourchette).</p>
@@ -809,6 +952,21 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     };
     return;
   }
+
+  // Bouton "Série faite" -> repos proposé (sauf après la dernière série)
+  const valider = $("#valider-serie");
+  if (valider) valider.onclick = () => {
+    const cle = cleSeries(idExo);
+    seriesValidees[cle] = (seriesValidees[cle] || 0) + 1;
+    const total = prevu(idExo).series;
+    if (seriesValidees[cle] < total) {
+      preparerMinuteur({ titre: `Repos avant la série ${seriesValidees[cle] + 1}`, secondes: reposConseille(exo) });
+    } else {
+      fermerMinuteur();
+    }
+    afficher({ garderDefilement: true });
+    if (seriesValidees[cle] >= total) setTimeout(() => $("#suivi")?.scrollIntoView({ behavior: "smooth" }), 50);
+  };
 
   // Afficher le champ de précision quand "Autre" est coché
   const autre = document.querySelector('input[name="douleur"][value="autre"]');
@@ -1074,7 +1232,8 @@ function pageIntrouvable() {
    #/historique  ·  #/historique/squat  ·  #/reglages
    "?ok" à la fin = on vient d'enregistrer
    --------------------------------------------------------------------- */
-function afficher() {
+// garderDefilement = true : réafficher sans remonter en haut de la page
+function afficher({ garderDefilement = false } = {}) {
   const [chemin, options] = location.hash.replace(/^#\/?/, "").split("?");
   const m = chemin.split("/").filter(Boolean);
   let page, onglet = "planning";
@@ -1096,10 +1255,10 @@ function afficher() {
 
   document.querySelectorAll(".nav-bas a").forEach(a => a.classList.toggle("actif", a.dataset.onglet === onglet));
   if (page.apres) page.apres();
-  window.scrollTo(0, 0);
+  if (!garderDefilement) window.scrollTo(0, 0);
 }
 
-window.addEventListener("hashchange", afficher);
+window.addEventListener("hashchange", () => afficher());
 afficher();
 
 // Installation sur l'écran d'accueil + fonctionnement hors connexion.
