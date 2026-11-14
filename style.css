@@ -282,3 +282,12 @@ input.a-preciser, select:invalid { border: 2px dashed var(--orange); }
 .bouton:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .carte.rappel { border-left: 5px solid var(--orange); }
+
+/* Décaler une séance */
+.element + .element { border-top: 1px solid var(--bord); margin-top: 4px; }
+.ligne-decaler { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; margin-top: -4px; }
+.lien-seance + .ligne-decaler { border-top: 0; }
+.form-decaler { background: var(--fond); border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; }
+.form-decaler label { margin-top: 0; font-weight: 600; }
+.date-jour { font-weight: 400; font-size: 0.85rem; }
+.carte.passe { opacity: 0.8; }

@@ -37,6 +37,8 @@ function donneesVides() {
     historiqueAjustements: [],  // trace de chaque changement accepté
     propositionsTraitees: {},   // { idEntrée: "acceptee" | "ignoree" }
     douleurs: [],               // douleurs signalées et leur suivi
+    decalages: {},              // { "lundi de la semaine": [{ cle, jourPrevu, vers }] }
+    seancesSautees: {},         // { "lundi de la semaine": ["cle@jourPrevu"] } (séance ratée laissée tomber)
     derniereSauvegarde: null,   // date du dernier export (fichier de sauvegarde)
     rappelSauvegardeMasque: null // jour où tu as appuyé sur « Plus tard »
   };
@@ -470,6 +472,181 @@ function brancherDouleurs() {
 }
 
 /* ---------------------------------------------------------------------
+   5 bis. LA SEMAINE : décalages, séances faites / ratées
+   Un "élément" du planning = une séance (ou un choix de séances, ex.
+   dos à la barre OU à la maison). Un décalage ne vaut que pour la
+   semaine où il est fait : la semaine suivante, le planning normal revient.
+   --------------------------------------------------------------------- */
+
+// Lundi de la semaine d'une date, au format "2026-11-09"
+function lundiDe(d = new Date()) {
+  const x = new Date(d);
+  x.setHours(12, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return aujourdhuiISO(x);
+}
+
+// Date d'un jour de la semaine : ("2026-11-09", "mercredi") -> "2026-11-11"
+function dateDuJour(lundi, jour) {
+  const x = new Date(lundi + "T12:00:00");
+  x.setDate(x.getDate() + JOURS.indexOf(jour));
+  return aujourdhuiISO(x);
+}
+
+function decalerDate(iso, jours) {
+  const x = new Date(iso + "T12:00:00");
+  x.setDate(x.getDate() + jours);
+  return aujourdhuiISO(x);
+}
+
+const cleElement = el => Array.isArray(el) ? el.join("|") : el;
+
+// Le planning d'une semaine, décalages compris :
+// { lundi: [ { cle, seances: [...], jourPrevu, jour, facultatif }, ... ], mardi: [...], ... }
+function planSemaine(lundi = lundiDe()) {
+  const plan = Object.fromEntries(JOURS.map(j => [j, []]));
+  for (const jour of JOURS) {
+    for (const el of PROGRAMME.planning[jour] || []) {
+      plan[jour].push({
+        cle: cleElement(el), seances: Array.isArray(el) ? el : [el],
+        jourPrevu: jour, jour, facultatif: PROGRAMME.joursFacultatifs.includes(jour)
+      });
+    }
+  }
+  for (const d of donnees.decalages[lundi] || []) {
+    const liste = plan[d.jourPrevu];
+    const i = liste.findIndex(x => x.cle === d.cle && x.jour === d.jourPrevu);
+    if (i < 0 || !plan[d.vers]) continue;
+    const [element] = liste.splice(i, 1);
+    element.jour = d.vers;
+    plan[d.vers].push(element);
+  }
+  return plan;
+}
+
+// Une séance compte comme faite ce jour-là si au moins la moitié de ses exercices ont été notés
+function seanceFaiteLe(idSeance, dateISO) {
+  const s = PROGRAMME.seances[idSeance];
+  if (!s) return false;
+  const faits = new Set(donnees.journal
+    .filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO)
+    .map(e => e.exo));
+  return faits.size >= Math.ceil(s.exercices.length / 2);
+}
+
+const elementFait = (element, lundi) => element.seances.some(id => seanceFaiteLe(id, dateDuJour(lundi, element.jour)));
+const cleSautee = element => element.cle + "@" + element.jourPrevu;
+const nomElement = element => element.seances.map(id => PROGRAMME.seances[id]?.nom || id).join(" ou ");
+
+// Séances ratées : jour passé, pas faite, pas facultative, pas « laissée tomber »
+function seancesRatees(lundi = lundiDe()) {
+  const plan = planSemaine(lundi);
+  const aujourdhui = aujourdhuiISO();
+  const ratees = [];
+  for (const jour of JOURS) {
+    const date = dateDuJour(lundi, jour);
+    if (date >= aujourdhui || date < donnees.dateDebut) continue; // pas encore passé, ou avant le début du programme
+    for (const el of plan[jour]) {
+      if (el.facultatif || elementFait(el, lundi)) continue;
+      if ((donnees.seancesSautees[lundi] || []).includes(cleSautee(el))) continue;
+      ratees.push(el);
+    }
+  }
+  return ratees;
+}
+
+// Déplace un élément de la semaine en cours vers un autre jour
+function decaler(element, vers, lundi = lundiDe()) {
+  const liste = (donnees.decalages[lundi] || []).filter(d => !(d.cle === element.cle && d.jourPrevu === element.jourPrevu));
+  if (vers !== element.jourPrevu) liste.push({ cle: element.cle, jourPrevu: element.jourPrevu, vers });
+  donnees.decalages[lundi] = liste;
+  sauverDonnees();
+}
+
+// Règle de repos entre deux séances d'une même catégorie (ex. grip : 1 jour de repos minimum).
+// Renvoie un message d'alerte si le décalage ne la respecte pas, sinon "".
+function alerteRepos(element, vers, lundi = lundiDe()) {
+  const minimum = REGLES.joursReposEntre || {};
+  const messages = [];
+  for (const [categorie, repos] of Object.entries(minimum)) {
+    if (!element.seances.some(id => PROGRAMME.seances[id]?.categorie === categorie)) continue;
+    const dateVers = dateDuJour(lundi, vers);
+    // toutes les autres séances de cette catégorie : semaine en cours + semaines voisines
+    const autres = [];
+    for (const l of [decalerDate(lundi, -7), lundi, decalerDate(lundi, 7)]) {
+      const plan = planSemaine(l);
+      for (const jour of JOURS) for (const el of plan[jour]) {
+        if (l === lundi && el.cle === element.cle && el.jourPrevu === element.jourPrevu) continue;
+        if (el.seances.some(id => PROGRAMME.seances[id]?.categorie === categorie)) autres.push({ date: dateDuJour(l, jour), el });
+      }
+    }
+    for (const a of autres) {
+      const ecart = Math.abs(new Date(a.date) - new Date(dateVers)) / UN_JOUR;
+      if (ecart <= repos) {
+        const nomCat = PROGRAMME.categories[categorie]?.nom || categorie;
+        messages.push(`${nomCat} : il y a déjà « ${nomElement(a.el)} » le ${dateCourte(a.date + "T12:00:00")} — la règle est d'avoir au moins ${repos} jour de repos entre deux séances.`);
+      }
+    }
+  }
+  return [...new Set(messages)].join("\n");
+}
+
+// Formulaire « Décaler » (liste des jours + boutons)
+function formulaireDecaler(element, idForm) {
+  const lundi = lundiDe();
+  return `<div class="form-decaler" id="${idForm}" hidden>
+      <label for="${idForm}-jour">Déplacer « ${esc(nomElement(element))} » à :</label>
+      <select id="${idForm}-jour">${JOURS.map(j =>
+        `<option value="${j}" ${j === element.jour ? "selected" : ""}>${majuscule(j)} ${dateCourte(dateDuJour(lundi, j) + "T12:00:00").replace(/^\S+ /, "")}${j === element.jourPrevu ? " (jour prévu)" : ""}</option>`).join("")}
+      </select>
+      <div class="rangee">
+        <button class="bouton petit" data-valider-decalage="${idForm}" data-cle="${esc(element.cle)}" data-prevu="${element.jourPrevu}">Décaler</button>
+        <button class="bouton petit secondaire" data-fermer="${idForm}">Annuler</button>
+      </div>
+      <p class="doux">Le décalage ne vaut que pour cette semaine.</p>
+    </div>`;
+}
+
+function brancherDecalages() {
+  document.querySelectorAll("[data-ouvrir]").forEach(b => b.onclick = e => {
+    e.preventDefault();
+    const f = $("#" + b.dataset.ouvrir);
+    f.hidden = !f.hidden;
+  });
+  document.querySelectorAll("[data-fermer]").forEach(b => b.onclick = () => { $("#" + b.dataset.fermer).hidden = true; });
+  document.querySelectorAll("[data-valider-decalage]").forEach(b => b.onclick = () => {
+    const idForm = b.dataset.validerDecalage;
+    const vers = $("#" + idForm + "-jour").value;
+    const plan = planSemaine();
+    const element = JOURS.flatMap(j => plan[j]).find(x => x.cle === b.dataset.cle && x.jourPrevu === b.dataset.prevu);
+    if (!element) return;
+    const alerte = alerteRepos(element, vers);
+    if (alerte && !confirm("⚠️ " + alerte + "\n\nDécaler quand même ?")) return;
+    decaler(element, vers);
+    toast(vers === element.jourPrevu ? "Remis à son jour prévu" : `Décalé au ${vers}`);
+    afficher({ garderDefilement: true });
+  });
+  document.querySelectorAll("[data-laisser]").forEach(b => b.onclick = () => {
+    const lundi = lundiDe();
+    donnees.seancesSautees[lundi] = (donnees.seancesSautees[lundi] || []).concat(b.dataset.laisser);
+    sauverDonnees(); afficher({ garderDefilement: true });
+  });
+}
+
+// Cartes « séance ratée » en haut du planning
+function cartesRatees() {
+  return seancesRatees().map((el, k) => `<div class="carte rappel">
+      <h3>📌 Séance ratée : ${esc(nomElement(el))}</h3>
+      <p class="doux">Prévue ${el.jour === el.jourPrevu ? "" : "(après décalage) "}le ${el.jour}. Tu veux la décaler ?</p>
+      <div class="rangee">
+        <button class="bouton petit" data-ouvrir="rate-${k}">Décaler</button>
+        <button class="bouton petit secondaire" data-laisser="${esc(cleSautee(el))}">Laisser tomber</button>
+      </div>
+      ${formulaireDecaler(el, "rate-" + k)}
+    </div>`).join("");
+}
+
+/* ---------------------------------------------------------------------
    6. SAISIE VOCALE
    Format de phrase : « position normale, 4 séries de 8, 10 kilos »
    ou « planche, 3 séries de 30 secondes ».
@@ -743,11 +920,11 @@ const cleSeries = idExo => aujourdhuiISO() + "|" + idExo;
    "apres" branche les boutons une fois la page affichée.
    --------------------------------------------------------------------- */
 
-function lienSeance(idSeance) {
+function lienSeance(idSeance, dateISO = aujourdhuiISO()) {
   const s = PROGRAMME.seances[idSeance];
   if (!s) return `<div class="lien-seance">⚠️ Séance « ${esc(idSeance)} » introuvable dans programme.js</div>`;
   const cat = PROGRAMME.categories[s.categorie] || { emoji: "•" };
-  const faits = s.exercices.filter(faitAujourdhui).length;
+  const faits = new Set(donnees.journal.filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO).map(e => e.exo)).size;
   const etat = faits === 0 ? "" : faits >= s.exercices.length ? " · ✅" : ` · ${faits}/${s.exercices.length}`;
   return `<a class="lien-seance" href="#/seance/${idSeance}">
       <span>${cat.emoji} ${esc(s.nom)} <span class="doux">· ~${dureeSeance(idSeance)} min${etat}</span></span>
@@ -762,7 +939,7 @@ function pagePlanning() {
     ? `Phase de reprise : séries réduites jusqu'à la fin de la semaine ${REGLES.semainesPhaseDebut}.`
     : "Phase complète : nombre de séries normal.";
 
-  let html = cartesDouleur() + carteRappelSauvegarde();
+  let html = cartesDouleur() + carteRappelSauvegarde() + cartesRatees();
 
   const props = propositionsEnAttente();
   if (props.length) {
@@ -772,31 +949,41 @@ function pagePlanning() {
 
   html += `<div class="carte"><h2>Semaine ${semaineEnCours()}</h2><div class="doux">${phase}</div></div>`;
 
-  // La liste commence par aujourd'hui
-  const i = JOURS.indexOf(aujourdhui);
-  for (const jour of JOURS.slice(i).concat(JOURS.slice(0, i))) {
-    const seances = PROGRAMME.planning[jour] || [];
+  // La semaine du lundi au dimanche, aujourd'hui encadré
+  const lundi = lundiDe();
+  const plan = planSemaine(lundi);
+  for (const jour of JOURS) {
+    const elements = plan[jour];
+    const dateJour = dateDuJour(lundi, jour);
+    const passe = dateJour < aujourdhuiISO();
     const classes = ["carte"];
     if (jour === aujourdhui) classes.push("aujourdhui");
-    if (seances.length === 0) classes.push("repos");
+    if (elements.length === 0) classes.push("repos");
+    if (passe) classes.push("passe");
+    const toutFait = elements.length > 0 && elements.every(el => elementFait(el, lundi));
 
     html += `<section class="${classes.join(" ")}">
-        <h3>${majuscule(jour)}
+        <h3>${majuscule(jour)} <span class="doux date-jour">${dateCourte(dateJour + "T12:00:00").replace(/^\S+ /, "")}</span>
           ${jour === aujourdhui ? '<span class="badge">Aujourd\'hui</span>' : ""}
           ${PROGRAMME.joursFacultatifs.includes(jour) ? '<span class="badge gris">Facultatif</span>' : ""}
+          ${toutFait ? "✅" : ""}
         </h3>`;
-    if (seances.length === 0) html += `<div class="doux">Repos 😴</div>`;
-    for (const el of seances) {
-      html += Array.isArray(el)
-        ? el.map((id, k) => (k > 0 ? `<div class="ou">— ou —</div>` : "") + lienSeance(id)).join("")
-        : lienSeance(el);
-    }
+    if (elements.length === 0) html += `<div class="doux">Repos 😴</div>`;
+    elements.forEach((el, k) => {
+      const idForm = `dec-${jour}-${k}`;
+      html += `<div class="element">`;
+      html += el.seances.map((id, n) => (n > 0 ? `<div class="ou">— ou —</div>` : "") + lienSeance(id, dateJour)).join("");
+      html += `<div class="ligne-decaler">
+          ${el.jour !== el.jourPrevu ? `<span class="doux">↪ décalée du ${el.jourPrevu}</span>` : "<span></span>"}
+          <button class="lien" data-ouvrir="${idForm}">Décaler</button>
+        </div>${formulaireDecaler(el, idForm)}</div>`;
+    });
     html += `</section>`;
   }
 
   html += `<div class="carte"><h3>Rappels</h3><ul class="doux">
       ${REGLES.rappels.map(r => `<li>${esc(r)}</li>`).join("")}</ul></div>`;
-  return { titre: "Planning", html, apres: () => { brancherPropositions(); brancherDouleurs(); brancherRappelSauvegarde(); } };
+  return { titre: "Planning", html, apres: () => { brancherPropositions(); brancherDouleurs(); brancherRappelSauvegarde(); brancherDecalages(); } };
 }
 
 // ----- Séance : liste des exercices + saisie vocale -----
