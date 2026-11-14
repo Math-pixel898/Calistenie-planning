@@ -64,6 +64,7 @@ const PROGRAMME = {
     joursAuTopAvantMonter: 14,   // rester au moins 2 semaines au top avant de monter (2-3 sem.)
     joursReposEntre: { grip: 1 }, // au moins 1 jour de repos entre deux séances de grip (vérifié quand tu décales)
     seancesAuTopAvantMonter: 4,  // ... ET au moins 4 séances au top (sécurité si tu as sauté des séances)
+    reposEntreExercices: 60,     // pause automatique (secondes) avant d'enchaîner sur l'exercice suivant
     plusPetitCranKg: 1,          // ⚠️ à vérifier sur TON gripper (peut-être 0,5 kg)
     chargeMaxKg: 12,             // maximum de ton gripper
 

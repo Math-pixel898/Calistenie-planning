@@ -964,6 +964,29 @@ function dessinerMinuteur() {
 }
 
 // Durée de repos proposée : le milieu de la fourchette, arrondi à 15 s
+// ----- Séance enchaînée -----
+// Le prochain exercice de la séance pas encore fait aujourd'hui (d'abord après l'exercice en cours)
+function exerciceSuivant(idSeance, idExo) {
+  const liste = PROGRAMME.seances[idSeance].exercices.filter(id => PROGRAMME.exercices[id]);
+  const i = liste.indexOf(idExo);
+  return liste.slice(i + 1).find(id => !faitAujourdhui(id))
+    || liste.find(id => id !== idExo && !faitAujourdhui(id)) || null;
+}
+
+// Après avoir validé un exercice : pause qui démarre toute seule,
+// puis l'exercice suivant s'ouvre automatiquement
+function lancerReposEntreExercices(idSeance, idExo) {
+  const suivant = exerciceSuivant(idSeance, idExo);
+  if (!suivant) { fermerMinuteur(); return; }
+  const nom = PROGRAMME.exercices[suivant].nom;
+  preparerMinuteur({
+    titre: `Repos · ensuite : ${nom}`,
+    secondes: REGLES.reposEntreExercices || 60,
+    lancer: true,
+    ensuite: () => { toast("C'est parti : " + nom); location.hash = `#/exo/${idSeance}/${suivant}`; }
+  });
+}
+
 const reposConseille = exo => Math.round((exo.repos[0] + exo.repos[1]) / 2 / 15) * 15;
 
 // Nombre de séries déjà validées aujourd'hui, par exercice (en mémoire seulement)
@@ -1100,8 +1123,12 @@ function pageSeance(idSeance) {
   const faits = ids.filter(faitAujourdhui).length;
 
   let html = cartesDouleur(s.categorie) + carteEchauffement(s);
-  html += `<p class="doux">~${dureeSeance(idSeance)} min · ${ids.length} exercices · ${faits}/${ids.length} faits aujourd'hui.
-    Touche un exercice pour voir comment le faire et noter ta série.</p>`;
+  html += `<p class="doux">~${dureeSeance(idSeance)} min · ${ids.length} exercices · ${faits}/${ids.length} faits aujourd'hui.</p>`;
+  const premier = ids.find(id => !faitAujourdhui(id));
+  html += premier
+    ? `<a class="bouton" href="#/exo/${idSeance}/${premier}">▶ ${faits ? "Continuer" : "Commencer"} la séance</a>
+       <p class="doux">Les exercices s'enchaînent : tu valides, une pause de ${Math.round((REGLES.reposEntreExercices || 60) / 60 * 10) / 10 === 1 ? "1 minute" : (REGLES.reposEntreExercices || 60) + " s"} démarre, puis le suivant s'ouvre tout seul.</p>`
+    : `<div class="carte succes centre"><h3>Séance terminée aujourd'hui 🎉</h3></div>`;
 
   s.exercices.forEach((idExo, i) => {
     const exo = PROGRAMME.exercices[idExo];
@@ -1565,10 +1592,13 @@ function pageExercice(idSeance, idExo, juste) {
         <button class="lien" id="annuler">Annuler cet enregistrement</button>
       </div>`;
     html += carteAnalyse(idExo, analyser(idExo));
-    const suivant = seance.exercices[seance.exercices.indexOf(idExo) + 1];
+    const suivant = exerciceSuivant(idSeance, idExo);
+    const reposEnCours = minuteur.fin !== null || minuteur.restant !== null;
     html += suivant
-      ? `<a class="bouton" href="#/exo/${idSeance}/${suivant}">Exercice suivant : ${esc(PROGRAMME.exercices[suivant]?.nom)} ›</a>`
-      : `<a class="bouton" href="#/seance/${idSeance}">Séance terminée 🎉 Retour à la séance</a>`;
+      ? `${reposEnCours ? `<p class="doux centre">⏱ Repos en cours : l'exercice suivant s'ouvrira tout seul à la fin.</p>` : ""}
+         <a class="bouton" id="aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Exercice suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
+      : `<div class="carte succes centre"><h3>Séance terminée 🎉</h3><p class="doux">Tous les exercices de « ${esc(seance.nom)} » sont faits aujourd'hui.</p></div>
+         <a class="bouton" href="#/">Retour au planning</a>`;
   } else {
     const faites = seriesValidees[cleSeries(idExo)] || 0;
     html += `<div class="carte" id="series-en-cours">
@@ -1635,7 +1665,11 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     afficher({ garderDefilement: true });
   });
   if (entreeJuste) {
+    // On montre directement la confirmation (et le bouton pour passer le repos)
+    setTimeout(() => $("#annuler")?.closest(".carte")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+    if ($("#aller-suivant")) $("#aller-suivant").addEventListener("click", () => fermerMinuteur());
     $("#annuler").onclick = () => {
+      fermerMinuteur();
       annulerEntree(entreeJuste.id);
       toast("Enregistrement annulé");
       location.hash = `#/exo/${idSeance}/${idExo}`;
@@ -1669,6 +1703,7 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
 
   const terminer = infos => {
     enregistrer(Object.assign({ seance: idSeance, exo: idExo, douleur: lireDouleur(), douleurNote: $("#douleur-note").value.trim() }, infos));
+    lancerReposEntreExercices(idSeance, idExo); // pause d'1 min, puis exercice suivant
     location.hash = `#/exo/${idSeance}/${idExo}?ok`;
   };
 
