@@ -33,7 +33,7 @@ function donneesVides() {
     version: 1,
     dateDebut: aujourdhuiISO(), // début du programme (sert à calculer la semaine)
     journal: [],                // chaque exercice fait = une "entrée"
-    ajustements: {},            // charges / fourchettes modifiées : { idExo: { chargeKg, cible } }
+    ajustements: {},            // objectifs / charges modifiés : { idExo: { objectif, chargeKg, version } }
     historiqueAjustements: [],  // trace de chaque changement accepté
     propositionsTraitees: {},   // { idEntrée: "acceptee" | "ignoree" }
     douleurs: [],               // douleurs signalées et leur suivi
@@ -105,7 +105,7 @@ function prevu(idExo) {
   const aj = donnees.ajustements[idExo] || {};
   return {
     series: enPhaseDebut() ? exo.series.debut : exo.series.plein,
-    cible: aj.cible || exo.cible,
+    objectif: aj.objectif ?? exo.objectif,   // nombre exact de reps (ou de secondes)
     chargeKg: aj.chargeKg !== undefined ? aj.chargeKg : exo.chargeKg,
     // "normale" ou "facile" (seulement pour les exercices sans charge)
     version: exo.chargeKg !== undefined ? "normale" : (aj.version || exo.versionDepart || "normale")
@@ -122,12 +122,19 @@ function texteResistance(chargeKg) {
 }
 const unite = exo => exo.type === "temps" ? "s" : "reps";
 
-// "3 × 8-12 reps par côté"
+// "3 × 12 reps par côté"
 function texteObjectif(idExo) {
   const exo = PROGRAMME.exercices[idExo];
   const p = prevu(idExo);
   const cote = exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : "";
-  return `${p.series} × ${p.cible[0]}-${p.cible[1]} ${unite(exo)}${cote}`;
+  return `${p.series} × ${p.objectif} ${unite(exo)}${cote}`;
+}
+
+// Repos exact entre deux séries : "45 s", "1 min", "1 min 30"
+function texteReposExact(exo) {
+  const t = reposConseille(exo);
+  if (t < 60) return `${t} s`;
+  return t % 60 === 0 ? `${t / 60} min` : `${Math.floor(t / 60)} min ${String(t % 60).padStart(2, "0")}`;
 }
 
 // "60-90 s" ou "1-2 min"
@@ -140,8 +147,7 @@ function texteRepos([a, b]) {
 function dureeExercice(idExo) {
   const exo = PROGRAMME.exercices[idExo];
   const p = prevu(idExo);
-  const moyenne = (p.cible[0] + p.cible[1]) / 2;
-  let effort = exo.type === "temps" ? moyenne : moyenne * 3;
+  let effort = exo.type === "temps" ? p.objectif : p.objectif * 3;
   if (exo.parCote) effort *= 2;
   const reposMoyen = (exo.repos[0] + exo.repos[1]) / 2;
   return 30 + p.series * effort + (p.series - 1) * reposMoyen;
@@ -175,7 +181,7 @@ function toast(texte) {
    3. SUIVI : ENREGISTRER UN EXERCICE
    Une entrée du journal ressemble à :
    { id, date, seance, exo, resultat: "tout"|"moins"|"dur",
-     series: [8, 8, 7] (ou null), chargeKg, cible: [5, 8],
+     series: [8, 8, 7] (ou null), chargeKg, objectif: 8,
      seriesPrevues: 3, douleur: ["coude"], douleurNote: "" }
    --------------------------------------------------------------------- */
 function enregistrer({ seance, exo, resultat, series, chargeKg, douleur = [], douleurNote = "" }) {
@@ -186,7 +192,7 @@ function enregistrer({ seance, exo, resultat, series, chargeKg, douleur = [], do
     seance, exo, resultat,
     series: series && series.length ? series : null,
     chargeKg: chargeKg !== undefined ? chargeKg : p.chargeKg,
-    cible: p.cible.slice(),
+    objectif: p.objectif,
     seriesPrevues: p.series,
     version: p.version,
     douleur, douleurNote
@@ -215,8 +221,8 @@ function faitAujourdhui(idExo) {
 
 // Le résultat d'une saisie détaillée, déduit des chiffres
 // ("Trop dur" ne vient que du bouton rouge ; l'adaptation, elle, regarde les chiffres.)
-function resultatDepuisSeries(series, cible, seriesPrevues) {
-  if (series.length >= seriesPrevues && series.every(r => r >= cible[1])) return "tout";
+function resultatDepuisSeries(series, objectif, seriesPrevues) {
+  if (series.length >= seriesPrevues && series.every(r => r >= objectif)) return "tout";
   return "moins";
 }
 
@@ -227,17 +233,21 @@ const RESULTATS = {
 };
 
 /* ---------------------------------------------------------------------
-   4. ADAPTATION AUTOMATIQUE — progression par double palier
-   On regarde la DERNIÈRE entrée d'un exercice :
-   - bas de fourchette pas atteint (ou "trop dur") -> proposer de baisser
-   - haut de fourchette atteint sur toutes les séries :
-       · depuis moins de 2 semaines -> rester à cette charge (info)
-       · depuis 2 semaines ou plus  -> proposer de monter du plus petit cran
+   4. ADAPTATION AUTOMATIQUE — un objectif exact qui augmente pas à pas
+   On regarde la DERNIÈRE séance d'un exercice :
+   - réussie (toutes les séries à l'objectif) :
+       · 2 séances réussies d'affilée -> proposer +1 rep (ou +5 s)
+       · gripper arrivé au plafond de reps -> au moins 2 semaines et 4 séances
+         -> proposer +1 kg, et l'objectif de reps revient à celui de départ
+       · version facile -> au moins 2 semaines et 4 séances -> proposer la normale
+   - un peu en dessous -> on garde l'objectif, tu retentes
+   - trop dur -> proposer la version facile, ou -1 rep (ou -1 kg au gripper)
    L'app explique toujours pourquoi. Rien ne change sans ton accord.
    --------------------------------------------------------------------- */
-const auTop = e => e.series && e.series.length >= e.seriesPrevues && e.series.every(r => r >= e.cible[1]);
-const sousLeBas = e => e.resultat === "dur" || (e.series && e.series.some(r => r < e.cible[0]));
-const memeNiveau = (a, b) => a.chargeKg === b.chargeKg && a.cible[0] === b.cible[0] && a.cible[1] === b.cible[1]
+const objectifDe = e => e.objectif ?? (e.cible ? e.cible[1] : null); // (les vieilles séances avaient une fourchette)
+const reussie = e => !!e.series && e.series.length >= e.seriesPrevues && e.series.every(r => r >= objectifDe(e));
+const tropDur = e => e.resultat === "dur" || (!!e.series && e.series.some(r => r < Math.floor(objectifDe(e) * 0.7)));
+const memeNiveau = (a, b) => a.chargeKg === b.chargeKg && objectifDe(a) === objectifDe(b)
   && (a.version || "normale") === (b.version || "normale");
 
 function analyser(idExo) {
@@ -248,103 +258,101 @@ function analyser(idExo) {
   const p = prevu(idExo);
   const u = unite(exo);
   const pas = exo.type === "temps" ? REGLES.pasSecondes : REGLES.pasReps;
+  const obj = objectifDe(derniere);
+  const depart = exo.objectif; // objectif de départ (= minimum de reps au gripper)
+  const base = { entree: derniere };
 
-  // Si un ajustement a déjà été fait depuis cette entrée, on ne repropose rien
-  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, cible: p.cible, version: p.version });
+  // Si un ajustement a déjà été fait depuis cette séance, on ne repropose rien
+  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, objectif: p.objectif, version: p.version });
   const traitee = donnees.propositionsTraitees[derniere.id] || (dejaAjuste ? "acceptee" : null);
 
-  // ----- Trop dur : proposer de baisser -----
-  if (sousLeBas(derniere)) {
+  // ----- Trop dur : proposer de baisser un peu -----
+  if (tropDur(derniere)) {
     const pourquoi = derniere.resultat === "dur" && !derniere.series
       ? "Tu as indiqué « trop dur »."
-      : `Tu n'as pas atteint le bas de la fourchette (${derniere.cible[0]} ${u}) sur toutes les séries.`;
-    if (avecCharge(exo)) {
-      const nouvelle = Math.max(0, +(p.chargeKg - REGLES.plusPetitCranKg).toFixed(2));
-      return {
-        entree: derniere, traitee, sens: "baisser",
-        titre: `Baisser à ${kg(nouvelle)} ?`,
-        raison: `${pourquoi} Baisser d'un cran (${kg(p.chargeKg)} → ${kg(nouvelle)}) te permet de faire toutes tes séries correctement. Les tendons s'adaptent lentement : mieux vaut un peu trop facile qu'un peu trop dur.`,
-        changement: { chargeKg: nouvelle }
-      };
-    }
-    if (p.version === "normale" && exo.facile) {
-      return {
-        entree: derniere, traitee, sens: "baisser",
+      : `Tu étais loin de l'objectif (${obj} ${u}) sur au moins une série.`;
+    if (!avecCharge(exo) && p.version === "normale" && exo.facile) {
+      return { ...base, traitee, sens: "baisser",
         titre: "Passer à la version facile ?",
-        raison: `${pourquoi} Proposition : garder la même fourchette mais faire la version facile (${exo.facile}) pour finir tes séries proprement. Tu repasseras à la version normale quand tu seras au top 2 semaines.`,
-        changement: { version: "facile" }
-      };
+        raison: `${pourquoi} Proposition : garder le même objectif (${p.objectif} ${u}) mais faire la version facile : ${exo.facile}`,
+        changement: { version: "facile" } };
     }
-    const nouvelleCible = [Math.max(1, p.cible[0] - pas), Math.max(2, p.cible[1] - pas)];
-    return {
-      entree: derniere, traitee, sens: "baisser",
-      titre: `Baisser à ${nouvelleCible[0]}-${nouvelleCible[1]} ${u} ?`,
-      raison: `${pourquoi} On baisse un peu la fourchette pour que tu puisses finir tes séries proprement. Tu peux aussi prendre la version plus facile : ${exo.facile}`,
-      changement: { cible: nouvelleCible }
-    };
+    if (avecCharge(exo) && p.objectif - pas < depart) {
+      const nouvelle = Math.max(0, +(p.chargeKg - REGLES.plusPetitCranKg).toFixed(2));
+      return { ...base, traitee, sens: "baisser",
+        titre: `Baisser à ${kg(nouvelle)} ?`,
+        raison: `${pourquoi} Tu es déjà au minimum de reps (${p.objectif}) : on baisse d'un cran (${kg(p.chargeKg)} → ${kg(nouvelle)}). Les tendons s'adaptent lentement : mieux vaut un peu trop facile qu'un peu trop dur.`,
+        changement: { chargeKg: nouvelle } };
+    }
+    const nouvel = Math.max(1, p.objectif - pas);
+    return { ...base, traitee, sens: "baisser",
+      titre: `Baisser à ${nouvel} ${u} ?`,
+      raison: `${pourquoi} On baisse un peu l'objectif (${p.objectif} → ${nouvel} ${u}) pour que tu finisses toutes tes séries proprement.`,
+      changement: { objectif: nouvel } };
   }
 
-  // ----- Haut de la fourchette atteint -----
-  if (auTop(derniere)) {
-    // Depuis quand est-on au top, sans interruption, à ce niveau ?
-    let debutSerie = derniere, nbAuTop = 1;
+  // ----- Objectif réussi sur toutes les séries -----
+  if (reussie(derniere)) {
+    // Combien de séances réussies d'affilée à ce niveau, et depuis combien de jours ?
+    let debutSerie = derniere, nb = 1;
     for (let i = liste.length - 2; i >= 0; i--) {
-      if (auTop(liste[i]) && memeNiveau(liste[i], derniere)) { debutSerie = liste[i]; nbAuTop++; }
+      if (reussie(liste[i]) && memeNiveau(liste[i], derniere)) { debutSerie = liste[i]; nb++; }
       else break;
     }
     const jours = Math.floor((new Date(derniere.date) - new Date(debutSerie.date)) / UN_JOUR);
     const attente = REGLES.joursAuTopAvantMonter;
     const minSeances = REGLES.seancesAuTopAvantMonter || 1;
+    const auPlafond = avecCharge(exo) && exo.max !== undefined && p.objectif >= exo.max;
+    const enFacile = !avecCharge(exo) && p.version === "facile";
 
-    if (jours < attente || nbAuTop < minSeances) {
-      const reste = [];
-      if (jours < attente) reste.push(`encore environ ${attente - jours} jour(s)`);
-      if (nbAuTop < minSeances) reste.push(`encore ${minSeances - nbAuTop} séance(s) réussie(s)`);
-      return {
-        entree: derniere, traitee: traitee || "info", sens: "rester",
-        titre: "Haut de la fourchette atteint 👏",
-        raison: `Tu as fait ${derniere.cible[1]} ${u} sur toutes les séries. Règle du double palier : on reste au même niveau 2 à 3 semaines (et au moins ${minSeances} séances au top) pour que les tendons suivent, puis on monte. Il faut ${reste.join(" et ")} au top avant de monter.`
-      };
-    }
-    if (avecCharge(exo)) {
-      if (p.chargeKg >= REGLES.chargeMaxKg) {
-        return {
-          entree: derniere, traitee: traitee || "info", sens: "rester",
-          titre: "Charge maximale atteinte",
-          raison: `Tu es au maximum du gripper (${kg(REGLES.chargeMaxKg)}). Pour continuer : ouvre plus lentement, tiens plus longtemps, ou garde ce niveau.`
-        };
+    // Gripper au plafond de reps, ou version facile : on attend 2 semaines et 4 séances
+    if (auPlafond || enFacile) {
+      if (jours < attente || nb < minSeances) {
+        const reste = [];
+        if (jours < attente) reste.push(`encore environ ${attente - jours} jour(s)`);
+        if (nb < minSeances) reste.push(`encore ${minSeances - nb} séance(s) réussie(s)`);
+        return { ...base, traitee: traitee || "info", sens: "rester",
+          titre: "Objectif réussi 👏",
+          raison: auPlafond
+            ? `Tu fais ${obj} ${u} sur toutes les séries : c'est le plafond avant d'augmenter la charge. Prudence pour les tendons : on reste au moins 2 semaines (et ${minSeances} séances réussies) à ce niveau. Il faut ${reste.join(" et ")} avant de monter.`
+            : `Version facile réussie. Avant de passer à la version normale, on reste au moins 2 semaines (et ${minSeances} séances réussies). Il faut ${reste.join(" et ")}.` };
       }
-      const nouvelle = Math.min(REGLES.chargeMaxKg, +(p.chargeKg + REGLES.plusPetitCranKg).toFixed(2));
-      return {
-        entree: derniere, traitee, sens: "monter",
-        titre: `Monter à ${kg(nouvelle)} ?`,
-        raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On monte du plus petit cran (${kg(p.chargeKg)} → ${kg(nouvelle)}). Tes reps vont baisser un peu au début, c'est normal : tu remonteras ensuite vers le haut de la fourchette.`,
-        changement: { chargeKg: nouvelle }
-      };
-    }
-    if (p.version === "facile") {
-      return {
-        entree: derniere, traitee, sens: "monter",
+      if (auPlafond) {
+        if (p.chargeKg >= REGLES.chargeMaxKg) {
+          return { ...base, traitee: traitee || "info", sens: "rester",
+            titre: "Charge maximale atteinte",
+            raison: `Tu es au maximum du gripper (${kg(REGLES.chargeMaxKg)}). Pour continuer : ouvre plus lentement, tiens plus longtemps, ou garde ce niveau.` };
+        }
+        const nouvelle = Math.min(REGLES.chargeMaxKg, +(p.chargeKg + REGLES.plusPetitCranKg).toFixed(2));
+        return { ...base, traitee, sens: "monter",
+          titre: `Monter à ${kg(nouvelle)} ?`,
+          raison: `Tu fais ${obj} ${u} sur toutes les séries depuis ${jours} jours (${nb} séances). On monte d'un cran (${kg(p.chargeKg)} → ${kg(nouvelle)}) et l'objectif revient à ${depart} ${u}. Tu remonteras ensuite les reps une par une.`,
+          changement: { chargeKg: nouvelle, objectif: depart } };
+      }
+      return { ...base, traitee, sens: "monter",
         titre: "Passer à la version normale ?",
-        raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) en version facile sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On passe à la version normale avec la même fourchette. Tes reps vont baisser au début, c'est normal.`,
-        changement: { version: "normale" }
-      };
+        raison: `Tu réussis ${obj} ${u} en version facile depuis ${jours} jours (${nb} séances). On passe à la version normale avec le même objectif (${p.objectif} ${u}). C'est plus dur : si tu n'y arrives pas, l'app te proposera de revenir en facile.`,
+        changement: { version: "normale" } };
     }
-    const nouvelleCible = [p.cible[0] + pas, p.cible[1] + pas];
-    return {
-      entree: derniere, traitee, sens: "monter",
-      titre: `Monter à ${nouvelleCible[0]}-${nouvelleCible[1]} ${u} ?`,
-      raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On monte un peu la fourchette. Autre option : passer à la version plus difficile (${exo.difficile}) et garder la fourchette actuelle.`,
-      changement: { cible: nouvelleCible }
-    };
+
+    // Cas général : 2 séances réussies d'affilée -> +1 rep (ou +5 s)
+    const minReussies = REGLES.seancesReussiesAvantAugmenter || 2;
+    const nouvel = avecCharge(exo) && exo.max !== undefined ? Math.min(exo.max, p.objectif + pas) : p.objectif + pas;
+    if (nb < minReussies) {
+      return { ...base, traitee: traitee || "info", sens: "rester",
+        titre: "Objectif réussi 👏",
+        raison: `Tu as fait ${obj} ${u} sur toutes les séries. Encore ${minReussies - nb} séance(s) réussie(s) à ${obj} ${u} et l'app te proposera de passer à ${nouvel} ${u}.` };
+    }
+    return { ...base, traitee, sens: "monter",
+      titre: `Passer à ${nouvel} ${u} ?`,
+      raison: `Tu as réussi ${obj} ${u} sur toutes les séries, ${nb} séances d'affilée. On monte un peu : ${p.objectif} → ${nouvel} ${u} par série.`,
+      changement: { objectif: nouvel } };
   }
 
-  // ----- Dans la fourchette : rien à changer -----
-  return {
-    entree: derniere, traitee: traitee || "info", sens: "rester",
-    titre: "Dans la fourchette 👍",
-    raison: `Continue au même niveau et essaie d'atteindre ${derniere.cible[1]} ${u} sur toutes les séries. L'app proposera de monter quand tu y seras depuis 2 semaines.`
-  };
+  // ----- Un peu en dessous : on garde l'objectif -----
+  return { ...base, traitee: traitee || "info", sens: "rester",
+    titre: "Presque 👍",
+    raison: `Tu n'as pas fait ${obj} ${u} sur toutes les séries. On garde le même objectif (${p.objectif} ${u}) : retente la prochaine fois.` };
 }
 
 function accepterProposition(idExo) {
@@ -354,7 +362,7 @@ function accepterProposition(idExo) {
   donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], a.changement);
   donnees.historiqueAjustements.push({
     date: new Date().toISOString(), exo: idExo,
-    avant: { chargeKg: avant.chargeKg, cible: avant.cible, version: avant.version },
+    avant: { chargeKg: avant.chargeKg, objectif: avant.objectif, version: avant.version },
     apres: a.changement, raison: a.raison
   });
   donnees.propositionsTraitees[a.entree.id] = "acceptee";
@@ -811,7 +819,7 @@ function verifierSaisie({ exo: idExo, series, reps, chargeKg }) {
 
   if (reps === null || isNaN(reps)) erreurs.push(`Indique le nombre de ${motReps} par série.`);
   else if (reps < rMin || reps > rMax) erreurs.push(`${reps} ${motReps}, ça paraît impossible : corrige.`);
-  else if (reps > p.cible[1] * 1.5 || reps < p.cible[0] / 2) inhabituels.push(`${reps} ${motReps} alors que la fourchette est ${p.cible[0]}-${p.cible[1]}.`);
+  else if (reps > p.objectif * 1.5 || reps < p.objectif / 2) inhabituels.push(`${reps} ${motReps} alors que l'objectif est ${p.objectif}.`);
 
   if (avecCharge(exo)) {
     if (chargeKg === null || isNaN(chargeKg)) erreurs.push("Indique la charge en kg.");
@@ -963,7 +971,7 @@ function dessinerMinuteur() {
   });
 }
 
-// Durée de repos proposée : le milieu de la fourchette, arrondi à 15 s
+// Durée de repos proposée : le milieu de la plage de repos, arrondi à 15 s
 // ----- Séance enchaînée -----
 // Le prochain exercice de la séance pas encore fait aujourd'hui (d'abord après l'exercice en cours)
 function exerciceSuivant(idSeance, idExo) {
@@ -1138,7 +1146,7 @@ function pageSeance(idSeance) {
     html += `<a class="carte ligne-exo ${fait ? "fait" : ""}" href="#/exo/${idSeance}/${idExo}">
         <span class="num">${fait ? "✓" : i + 1}</span>
         <span class="infos"><strong>${esc(exo.nom)}</strong><br>
-          ${estFacile(idExo) ? `<span class="etiquette-facile">version facile</span> ` : ""}<span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? ` · <strong>${texteResistance(p.chargeKg)}</strong> ≈ ${kg(p.chargeKg)}` : ""} · repos ${texteRepos(exo.repos)}</span>
+          ${estFacile(idExo) ? `<span class="etiquette-facile">version facile</span> ` : ""}<span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? ` · <strong>${texteResistance(p.chargeKg)}</strong> ≈ ${kg(p.chargeKg)}` : ""} · repos ${texteReposExact(exo)}</span>
         </span>
         <span class="fleche doux">›</span>
       </a>`;
@@ -1165,7 +1173,7 @@ function exempleDictee(ids) {
   const p = prevu(ids[0]);
   const nom = exo.nom.replace(/^Gripper — /, "").replace(/\s*\(.*\)/, "").toLowerCase();
   const fin = exo.type === "temps" ? " secondes" : "";
-  return `${nom}, ${p.series} séries de ${p.cible[1]}${fin}${avecCharge(exo) ? ", " + p.chargeKg + " kilos" : ""}`;
+  return `${nom}, ${p.series} séries de ${p.objectif}${fin}${avecCharge(exo) ? ", " + p.chargeKg + " kilos" : ""}`;
 }
 
 function brancherVocal(idSeance, ids) {
@@ -1217,7 +1225,7 @@ function brancherVocal(idSeance, ids) {
       $("#v-charge-bloc").hidden = !(exo && avecCharge(exo));
       $("#v-reps-label").textContent = exo?.type === "temps" ? "Secondes par série" : "Reps par série";
       $("#v-series-prevu").textContent = p ? `prévu : ${p.series}` : "";
-      $("#v-reps-prevu").textContent = p ? `prévu : ${p.cible[0]}-${p.cible[1]}` : "";
+      $("#v-reps-prevu").textContent = p ? `prévu : ${p.objectif}` : "";
       $("#v-charge-prevu").textContent = p?.chargeKg !== undefined ? `prévu : ${kg(p.chargeKg)}` : "";
       if (exo && !avecCharge(exo) && c.chargeKg !== null && !$("#v-charge-bloc").dataset.dit) {
         $("#v-charge-bloc").dataset.dit = "1";
@@ -1249,7 +1257,7 @@ function brancherVocal(idSeance, ids) {
       const series = Array(nb).fill(reps);
       enregistrer({
         seance: idSeance, exo: exoId,
-        resultat: resultatDepuisSeries(series, pr.cible, pr.series),
+        resultat: resultatDepuisSeries(series, pr.objectif, pr.series),
         series, chargeKg: avecCharge(exo) ? chargeKg : undefined
       });
       champ.value = "";
@@ -1536,8 +1544,8 @@ function pageExercice(idSeance, idExo, juste) {
 
   html += `<div class="grille">
       <div class="case"><div class="etiquette">Séries</div><div class="valeur">${p.series}</div></div>
-      <div class="case"><div class="etiquette">${u}</div><div class="valeur">${p.cible[0]}-${p.cible[1]}</div></div>
-      <div class="case"><div class="etiquette">Repos</div><div class="valeur">${texteRepos(exo.repos)}</div></div>
+      <div class="case"><div class="etiquette">${u}</div><div class="valeur">${p.objectif}</div></div>
+      <div class="case"><div class="etiquette">Repos</div><div class="valeur">${texteReposExact(exo)}</div></div>
       <div class="case"><div class="etiquette">${avecCharge(exo) ? "Réglage" : "Côtés"}</div>
         <div class="valeur">${avecCharge(exo) ? "≈ " + kg(p.chargeKg) : (exo.parCote ? "Chacun" : "—")}</div></div>
     </div>`;
@@ -1557,7 +1565,8 @@ function pageExercice(idSeance, idExo, juste) {
       ${exo.parCote ? `<div class="doux">À faire ${avecCharge(exo) ? "avec chaque main" : "de chaque côté"}.</div>` : ""}
       ${enPhaseDebut() && exo.series.debut !== exo.series.plein
         ? `<div class="doux">Semaines 1-${REGLES.semainesPhaseDebut} : ${exo.series.debut} série(s), puis ${exo.series.plein}.</div>` : ""}
-      ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.cible[0]}-${exo.cible[1]}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
+      ${exo.max !== undefined ? `<div class="doux">Les reps montent une par une jusqu'à ${exo.max}, puis l'app propose +1 kg (et on repart à ${exo.objectif}).</div>` : ""}
+      ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.objectif} ${unite(exo)}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
     </div>`;
 
   if (!avecCharge(exo) && exo.facile) {
@@ -1569,7 +1578,7 @@ function pageExercice(idSeance, idExo, juste) {
           <button class="${facile ? "actif" : ""}" data-version="facile" aria-pressed="${facile}">Facile</button>
         </div>
         ${facile ? `<p><strong>Tu fais la version facile :</strong> ${esc(exo.facile)}</p>
-          <p class="doux">Même fourchette de reps. L'app te proposera la version normale quand tu seras au top 2 semaines.</p>` : ""}
+          <p class="doux">Même objectif. L'app te proposera la version normale quand tu l'auras réussi pendant 2 semaines.</p>` : ""}
         ${exo.versionDepart === "facile" && !donnees.ajustements[idExo]?.version ? `<p class="doux">Version facile conseillée pour la reprise.</p>` : ""}
       </div>`;
   }
@@ -1617,7 +1626,7 @@ function pageExercice(idSeance, idExo, juste) {
     html += `<div class="carte" id="suivi">
       <h3>Comment ça s'est passé ?</h3>
       <p class="doux">Valide tes séries avec le bouton en bas de l'écran (repos de ${mmss(reposConseille(exo))} lancé automatiquement entre deux séries), ou réponds directement ici.</p>
-      <p class="doux">Objectif : ${p.series} × ${p.cible[1]} ${unite(exo)}${exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : ""}${avecCharge(exo) ? " à " + kg(p.chargeKg) : ""} (haut de la fourchette).</p>
+      <p class="doux">Objectif : ${p.series} × ${p.objectif} ${unite(exo)}${exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : ""}${avecCharge(exo) ? " à " + kg(p.chargeKg) : ""}.</p>
 
       <fieldset class="douleur">
         <legend>Douleur ?</legend>
@@ -1626,16 +1635,16 @@ function pageExercice(idSeance, idExo, juste) {
         <input type="text" id="douleur-note" placeholder="Précise si tu veux (ex. épaule droite)" hidden>
       </fieldset>
 
-      <button class="gros vert" data-resultat="tout">✅ J'ai tout fait<small>toutes les séries, haut de la fourchette</small></button>
+      <button class="gros vert" data-resultat="tout">✅ J'ai tout fait<small>toutes les séries, à l'objectif</small></button>
       <button class="gros orange" data-resultat="moins">🟠 J'ai fait moins<small>je corrige les chiffres</small></button>
-      <button class="gros rouge" data-resultat="dur">🔴 Trop dur<small>pas pu atteindre le bas de la fourchette</small></button>
+      <button class="gros rouge" data-resultat="dur">🔴 Trop dur<small>j'étais loin de l'objectif</small></button>
 
       <details id="detail">
         <summary>Saisir les reps et la charge exactes</summary>
         <div id="champs-series">
           ${Array.from({ length: p.series }, (_, k) => `
             <div class="ligne-serie"><label for="s${k}">Série ${k + 1}</label>
-            <input id="s${k}" class="serie" type="number" inputmode="numeric" min="0" value="${p.cible[1]}">
+            <input id="s${k}" class="serie" type="number" inputmode="numeric" min="0" value="${p.objectif}">
             <span class="doux">${unite(exo)}</span></div>`).join("")}
         </div>
         <button class="lien" id="ajouter-serie">+ ajouter une série</button>
@@ -1718,8 +1727,8 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     const p = prevu(idExo);
     const r = b.dataset.resultat;
     if (r === "tout") {
-      // Tout fait = toutes les séries prévues, au haut de la fourchette
-      terminer({ resultat: "tout", series: Array(p.series).fill(p.cible[1]), chargeKg: p.chargeKg });
+      // Tout fait = toutes les séries prévues, à l'objectif
+      terminer({ resultat: "tout", series: Array(p.series).fill(p.objectif), chargeKg: p.chargeKg });
     } else if (r === "moins") {
       // On ouvre le détail pour que tu corriges les chiffres
       $("#detail").open = true;
@@ -1736,7 +1745,7 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     const div = document.createElement("div");
     div.className = "ligne-serie";
     div.innerHTML = `<label for="s${k}">Série ${k + 1}</label>
-      <input id="s${k}" class="serie" type="number" inputmode="numeric" min="0" value="${prevu(idExo).cible[1]}">
+      <input id="s${k}" class="serie" type="number" inputmode="numeric" min="0" value="${prevu(idExo).objectif}">
       <span class="doux">${unite(exo)}</span>`;
     $("#champs-series").appendChild(div);
   };
@@ -1745,7 +1754,7 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     const series = lireSeries();
     if (!series.length) { toast("Entre au moins une série"); return; }
     const p = prevu(idExo);
-    terminer({ resultat: resultatDepuisSeries(series, p.cible, p.series), series, chargeKg: lireCharge() });
+    terminer({ resultat: resultatDepuisSeries(series, p.objectif, p.series), series, chargeKg: lireCharge() });
   };
 }
 
@@ -1767,9 +1776,9 @@ function pageHistorique(idExoChoisi) {
   const avecSeries = entrees.filter(e => e.series);
   html += `<div class="carte"><h3>${exo.type === "temps" ? "Secondes" : "Reps"} moyennes par série</h3>
       ${avecSeries.length ? graphique(avecSeries.map(e => ({ date: e.date, valeur: moyenne(e.series), detail: e.series.join(" / ") + " " + unite(exo) })),
-        { bande: prevu(idExo).cible, unite: unite(exo) })
+        { ligne: prevu(idExo).objectif, unite: unite(exo) })
         : `<p class="doux">Pas encore de chiffres détaillés pour cet exercice.</p>`}
-      <p class="doux">La zone grisée = ta fourchette actuelle (${prevu(idExo).cible.join("-")} ${unite(exo)}).</p>
+      <p class="doux">Le trait pointillé = ton objectif actuel (${prevu(idExo).objectif} ${unite(exo)}).</p>
     </div>`;
   if (avecCharge(exo)) {
     html += `<div class="carte"><h3>Charge (kg)</h3>
@@ -1782,7 +1791,7 @@ function pageHistorique(idExoChoisi) {
     html += `<div class="carte"><h3>Changements acceptés</h3>${ajusts.slice().reverse().map(a =>
       `<div class="ligne-histo">${dateCourte(a.date)} — ${a.apres.chargeKg !== undefined ? kg(a.avant.chargeKg) + " → " + kg(a.apres.chargeKg)
         : a.apres.version ? "version " + (a.avant.version || "normale") + " → " + a.apres.version
-        : a.avant.cible.join("-") + " → " + a.apres.cible.join("-")}</div>`).join("")}</div>`;
+        : (a.avant.objectif ?? a.avant.cible?.join("-")) + " → " + (a.apres.objectif ?? a.apres.cible?.join("-")) + " " + unite(exo)}</div>`).join("")}</div>`;
   }
 
   // Séances passées, regroupées par jour
@@ -1849,7 +1858,7 @@ const moyenne = t => Math.round((t.reduce((a, b) => a + b, 0) / t.length) * 10) 
 function graphique(points, options = {}) {
   if (!points.length) return `<p class="doux">Pas de données.</p>`;
   const L = 320, H = 170, g = 34, d = 12, h = 12, b = 26; // largeur, hauteur, marges
-  const valeurs = points.map(p => p.valeur).concat(options.bande || []);
+  const valeurs = points.map(p => p.valeur).concat(options.ligne !== undefined ? [options.ligne] : []);
   let yMin = options.min ?? Math.min(...valeurs), yMax = Math.max(...valeurs);
   if (options.min === undefined) yMin = Math.max(0, Math.floor(yMin - 2));
   yMax = Math.ceil(yMax + 1);
@@ -1865,9 +1874,8 @@ function graphique(points, options = {}) {
     svg += `<line class="grille-ligne" x1="${g}" x2="${L - d}" y1="${vy}" y2="${vy}"/>
       <text class="axe" x="${g - 6}" y="${vy + 4}" text-anchor="end">${Math.round(v * 10) / 10}</text>`;
   }
-  if (options.bande) {
-    const [a, c] = options.bande;
-    svg += `<rect class="bande" x="${g}" width="${L - g - d}" y="${y(c)}" height="${Math.max(1, y(a) - y(c))}"/>`;
+  if (options.ligne !== undefined) {
+    svg += `<line class="objectif" x1="${g}" x2="${L - d}" y1="${y(options.ligne)}" y2="${y(options.ligne)}"/>`;
   }
   // Courbe
   if (points.length > 1) {
@@ -1938,7 +1946,7 @@ function pageReglages() {
 
     ${ajusts.length ? `<div class="carte"><h3>Ajustements en cours</h3>${ajusts.map(([id, a]) => {
       const x = PROGRAMME.exercices[id];
-      return `<div class="ligne-histo">${esc(x.nom)} : ${a.cible ? a.cible.join("-") + " " + unite(x) : ""}${a.chargeKg !== undefined ? " " + kg(a.chargeKg) : ""}${a.version ? " version " + a.version : ""}
+      return `<div class="ligne-histo">${esc(x.nom)} : ${a.objectif !== undefined ? a.objectif + " " + unite(x) : ""}${a.chargeKg !== undefined ? " " + kg(a.chargeKg) : ""}${a.version ? " version " + a.version : ""}
         <button class="lien" data-reinit="${id}">revenir au programme</button></div>`;
     }).join("")}</div>` : ""}
 

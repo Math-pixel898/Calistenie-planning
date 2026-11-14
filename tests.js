@@ -17,42 +17,43 @@ function reinitialiser() {
   donnees.dateDebut = "2025-01-01";
 }
 
-// Ajoute une séance fictive au journal, "jour" jours après DEBUT
-function seanceFictive(idExo, jour, { series = null, resultat = null, toutesLesSeries = true } = {}) {
+// Ajoute une séance fictive au journal, "jour" jours après DEBUT.
+// series = "ok" -> toutes les séries à l'objectif ; "moins1" -> une rep de moins sur la dernière série
+function seanceFictive(idExo, jour, { series = "ok", resultat = null } = {}) {
   const p = prevu(idExo);
-  // "toutes" = le haut de la fourchette sur toutes les séries prévues
-  if (series === "toutes") series = Array(p.series).fill(p.cible[1]);
+  if (series === "ok") series = Array(p.series).fill(p.objectif);
+  if (series === "moins1") series = Array(p.series).fill(p.objectif).map((r, i, t) => i === t.length - 1 ? r - 1 : r);
   const e = {
     id: "test" + jour + Math.random(), date: new Date(DEBUT.getTime() + jour * UN_JOUR).toISOString(),
     seance: "test", exo: idExo,
-    resultat: resultat || (series ? resultatDepuisSeries(series, p.cible, p.series) : "dur"),
-    series, chargeKg: p.chargeKg, cible: p.cible.slice(), seriesPrevues: p.series, version: p.version, douleur: []
+    resultat: resultat || (series ? resultatDepuisSeries(series, p.objectif, p.series) : "dur"),
+    series, chargeKg: p.chargeKg, objectif: p.objectif, seriesPrevues: p.series, version: p.version, douleur: []
   };
   donnees.journal.push(e);
   return e;
 }
 
 // Joue un scénario : liste de séances, l'app analyse après chacune.
-// accepter = true : on accepte les propositions (comme si tu appuyais sur "Accepter")
-function scenario(titre, explication, idExo, seances, { accepter = true } = {}) {
+// On accepte les propositions (comme si tu appuyais sur "Accepter").
+function scenario(titre, explication, idExo, seances, { accepter = true, preparer = null } = {}) {
   reinitialiser();
+  if (preparer) preparer();
   const exo = PROGRAMME.exercices[idExo];
   const lignes = [];
   for (const s of seances) {
-    const avant = prevu(idExo);
     const e = seanceFictive(idExo, s.jour, s);
     const a = analyser(idExo);
-    lignes.push({ jour: s.jour, avant, e, a });
+    lignes.push({ jour: s.jour, e, a });
     verifier(a && a.raison && a.raison.length > 30, `${titre} — jour ${s.jour} : l'app explique pourquoi`);
     if (accepter && a && a.changement && !a.traitee) accepterProposition(idExo);
   }
   html += `<section class="carte"><h2>${titre}</h2><p class="doux">${explication}</p>
-    <p class="doux">Exercice : <strong>${exo.nom}</strong> (fourchette de départ ${exo.cible.join("-")} ${unite(exo)}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""})</p>
+    <p class="doux">Exercice : <strong>${exo.nom}</strong> (objectif de départ ${exo.objectif} ${unite(exo)}${avecCharge(exo) ? ", " + kg(exo.chargeKg) + ", plafond " + exo.max : ""})</p>
     <div class="defile"><table><tr><th>Jour</th><th>Ce que tu as fait</th><th>Ce que l'app propose</th><th class="raison">Pourquoi</th></tr>
     ${lignes.map(l => `<tr>
       <td>S${Math.floor(l.jour / 7) + 1} · j${l.jour}</td>
-      <td>${l.e.series ? l.e.series.join("/") : "« Trop dur »"}${avecCharge(exo) ? " à " + kg(l.e.chargeKg) : ""}<br><span class="doux">fourchette ${l.e.cible.join("-")}</span></td>
-      <td><strong>${l.a.titre}</strong>${l.a.changement ? (accepter ? " → accepté" : "") : ""}</td>
+      <td>${l.e.series ? l.e.series.join("/") : "« Trop dur »"}${avecCharge(exo) ? " à " + kg(l.e.chargeKg) : ""}<br><span class="doux">objectif ${l.e.objectif}${l.e.version === "facile" ? " (facile)" : ""}</span></td>
+      <td><strong>${l.a.titre}</strong>${l.a.changement && accepter ? " → accepté" : ""}</td>
       <td class="raison doux">${l.a.raison}</td></tr>`).join("")}
     </table></div></section>`;
   return lignes;
@@ -61,101 +62,76 @@ function scenario(titre, explication, idExo, seances, { accepter = true } = {}) 
 const monte = l => l.a.sens === "monter";
 const baisse = l => l.a.sens === "baisser";
 
-/* ---------- 1. Tout réussi, avec charge (gripper) ---------- */
+/* ---------- 1. Gripper : les reps montent une par une, puis +1 kg avec prudence ---------- */
 {
-  const top = "toutes";
-  const l = scenario("1. Tout réussi (gripper)",
-    "Tu fais le haut de la fourchette sur toutes les séries à chaque séance, 2 fois par semaine. Après la montée de charge, tes reps baissent puis remontent.",
-    "grip-normale", [
-      { jour: 0, series: top }, { jour: 3, series: top }, { jour: 7, series: top }, { jour: 10, series: top },
-      { jour: 14, series: top },                                // 2 semaines au top -> monter
-      { jour: 17, series: [6, 6, 5, 5] }, { jour: 21, series: [7, 6, 6, 6] }, { jour: 24, series: [8, 7, 7, 7] },
-      { jour: 28, series: top }, { jour: 31, series: top }, { jour: 35, series: top }, { jour: 38, series: top },
-      { jour: 42, series: top }                                 // 2 semaines au top à 11 kg -> monter
+  const jours = [0, 3, 7, 10, 14, 17, 21, 24, 28, 31, 35];
+  const l = scenario("1. Gripper : tout réussi",
+    "Tu réussis l'objectif à chaque séance (2 par semaine). Les reps montent d'1 toutes les 2 séances réussies jusqu'au plafond (8), puis il faut 2 semaines et 4 séances au plafond avant +1 kg.",
+    "grip-normale", jours.map(j => ({ jour: j })));
+  verifier(!monte(l[0]) && monte(l[1]) && l[1].a.changement.objectif === 6, "1 — +1 rep seulement après 2 séances réussies (5 → 6)");
+  verifier(l.every(x => !x.a.changement || !x.a.changement.objectif || x.a.changement.chargeKg !== undefined || x.a.changement.objectif - x.e.objectif === 1), "1 — les reps montent toujours d'1 seule rep");
+  const montees = l.filter(x => x.a.changement?.chargeKg !== undefined);
+  verifier(montees.length === 1 && montees[0].jour === 35, "1 — +1 kg seulement au jour 35 (2 semaines et 4 séances au plafond de 8)");
+  verifier(montees[0]?.a.changement.chargeKg === 11 && montees[0]?.a.changement.objectif === 5, "1 — un seul cran (10 → 11 kg) et l'objectif revient à 5");
+}
+
+/* ---------- 2. Pompes : progression régulière, une séance ratée remet le compteur ---------- */
+{
+  const l = scenario("2. Pompes : une séance moins bonne au milieu",
+    "2 séances réussies → +1 rep. Une séance un peu en dessous : on garde l'objectif et le compteur repart.",
+    "pompes-classiques", [
+      { jour: 0 }, { jour: 4 },                  // -> 11
+      { jour: 7 }, { jour: 11, series: "moins1" }, // presque : on garde 11
+      { jour: 14 }, { jour: 18 }                 // -> 12
     ]);
-  verifier(l.slice(0, 4).every(x => !monte(x)), "1 — pas de montée avant 2 semaines au top");
-  verifier(monte(l[4]) && l[4].a.changement.chargeKg === 11, "1 — montée proposée au bout de 14 jours, d'un seul cran (10 → 11 kg)");
-  verifier(l.slice(5, 12).every(x => !monte(x)), "1 — après la montée, on attend à nouveau 2 semaines au top");
-  verifier(monte(l[12]) && l[12].a.changement.chargeKg === 12, "1 — nouvelle montée d'un cran seulement (11 → 12 kg)");
+  verifier(monte(l[1]) && l[1].a.changement.objectif === 11, "2 — 10 → 11 après 2 séances réussies");
+  verifier(l[3].a.sens === "rester" && !l[3].a.changement, "2 — une rep de moins : on garde l'objectif, rien ne change");
+  verifier(!monte(l[4]) && monte(l[5]) && l[5].a.changement.objectif === 12, "2 — le compteur repart : 11 → 12 seulement après 2 nouvelles réussites");
 }
 
-/* ---------- 2. Tout réussi, sans charge (pompes) ---------- */
+/* ---------- 3. Trop dur ---------- */
 {
-  const l = scenario("2. Tout réussi (pompes, sans charge)",
-    "Même chose avec un exercice au poids du corps.",
-    "pompes-classiques", [0, 4, 7, 11, 14, 18].map(j => ({ jour: j, series: "toutes" })));
-  verifier(l.slice(0, 4).every(x => !monte(x)), "2 — pas de montée avant 2 semaines");
-  verifier(monte(l[4]), "2 — proposition de monter au bout de 14 jours");
-}
-
-/* ---------- 3. Séries ratées ---------- */
-{
-  const l = scenario("3. Séries ratées (sous le bas de la fourchette)",
-    "Tu n'arrives pas au bas de la fourchette (5 reps). Puis, à la charge baissée, ça va mieux.",
-    "grip-normale", [
-      { jour: 0, series: [5, 4, 4, 3] },
-      { jour: 3, series: [7, 6, 6, 6] },
-      { jour: 7, series: null, resultat: "dur" }
+  const l = scenario("3. Trop dur",
+    "En version normale : l'app propose d'abord la version facile. Déjà en facile : -1 rep.",
+    "pompes-classiques", [
+      { jour: 0, series: null, resultat: "dur" },  // normale -> facile
+      { jour: 4, series: [4, 3, 3] }               // facile, loin de l'objectif -> -1 rep
     ]);
-  verifier(baisse(l[0]) && l[0].a.changement.chargeKg === 9, "3 — baisse proposée, d'un seul cran (10 → 9 kg)");
-  verifier(l[1].a.sens === "rester", "3 — dans la fourchette : on ne change rien");
-  verifier(baisse(l[2]), "3 — bouton « Trop dur » : baisse proposée");
+  verifier(baisse(l[0]) && l[0].a.changement.version === "facile", "3 — trop dur en version normale : passer en version facile");
+  verifier(baisse(l[1]) && l[1].a.changement.objectif === 9, "3 — trop dur en facile : -1 rep (10 → 9)");
+  const g = scenario("3 bis. Gripper trop dur",
+    "Au minimum de reps (5) : on baisse d'un cran de charge.",
+    "grip-normale", [{ jour: 0, series: [3, 3, 2, 2] }]);
+  verifier(baisse(g[0]) && g[0].a.changement.chargeKg === 9, "3 bis — gripper au minimum de reps : -1 kg (10 → 9)");
 }
 
-/* ---------- 4. Une séance moins bonne au milieu ---------- */
+/* ---------- 4. Version facile -> normale ---------- */
 {
-  const l = scenario("4. Une séance moins bonne au milieu",
-    "Au top, puis une séance un peu moins bonne : le compteur des 2 semaines repart de zéro.",
-    "grip-normale", [
-      { jour: 0, series: "toutes" }, { jour: 3, series: "toutes" }, { jour: 7, series: "toutes" },
-      { jour: 10, series: [8, 8, 7, 7] },
-      { jour: 14, series: "toutes" }, { jour: 17, series: "toutes" }, { jour: 21, series: "toutes" }, { jour: 24, series: "toutes" },
-      { jour: 28, series: "toutes" }
-    ]);
-  verifier(!monte(l[4]) && !monte(l[7]), "4 — pas de montée au jour 14 ni 24 (compteur reparti au jour 14)");
-  verifier(monte(l[8]), "4 — montée au jour 28 (2 semaines après la reprise du top)");
+  const l = scenario("4. Version facile (pompes diamant)",
+    "L'exercice commence en version facile (reprise). Il faut 2 semaines et 4 séances réussies avant de proposer la version normale.",
+    "pompes-diamant", [0, 4, 7, 11, 14].map(j => ({ jour: j })));
+  verifier(l[0].e.version === "facile", "4 — la séance est notée en version facile");
+  verifier(l.slice(0, 4).every(x => !monte(x)), "4 — pas de changement avant 2 semaines");
+  verifier(monte(l[4]) && l[4].a.changement.version === "normale", "4 — puis : passer en version normale, même objectif");
 }
 
-/* ---------- 5. Haut atteint, mais pas toutes les séries ---------- */
+/* ---------- 5. Séances espacées (prudence gripper) ---------- */
 {
-  const l = scenario("5. Une série oubliée",
-    "Haut de la fourchette, mais 3 séries au lieu de 4 : ça ne compte pas comme « tout réussi ».",
-    "grip-normale", [0, 3, 7, 10, 14, 17].map(j => ({ jour: j, series: [8, 8, 8] })));
-  verifier(l.every(x => !monte(x)), "5 — jamais de montée si toutes les séries ne sont pas faites");
-}
-
-/* ---------- 5 bis. Séances espacées ---------- */
-{
-  const l = scenario("5 bis. Seulement 2 séances en 2 semaines",
-    "Tu as sauté des séances : 2 séances au top à 14 jours d'écart ne suffisent pas, il en faut au moins 4.",
-    "grip-normale", [{ jour: 0, series: "toutes" }, { jour: 14, series: "toutes" }, { jour: 17, series: "toutes" }, { jour: 21, series: "toutes" }]);
-  verifier(!monte(l[1]) && !monte(l[2]), "5 bis — pas de montée avec seulement 2 ou 3 séances au top");
-  verifier(monte(l[3]), "5 bis — montée à la 4e séance au top (plus de 2 semaines)");
-}
-
-/* ---------- 5 ter. Version facile ---------- */
-{
-  const l = scenario("5 ter. Version facile (pompes diamant)",
-    "L'exercice commence en version facile (reprise). Au top 2 semaines : l'app propose la version normale. Si c'est trop dur en normale : retour à la version facile avant de baisser les reps.",
-    "pompes-diamant", [
-      { jour: 0, series: "toutes" }, { jour: 4, series: "toutes" }, { jour: 7, series: "toutes" }, { jour: 11, series: "toutes" },
-      { jour: 14, series: "toutes" },
-      { jour: 18, series: [5, 4, 4] }
-    ]);
-  verifier(l[0].e.version === "facile", "5 ter — la séance est notée en version facile");
-  verifier(l.slice(0, 4).every(x => !monte(x)), "5 ter — pas de changement avant 2 semaines");
-  verifier(monte(l[4]) && l[4].a.changement.version === "normale", "5 ter — proposition : passer à la version normale (même fourchette)");
-  verifier(baisse(l[5]) && l[5].a.changement.version === "facile", "5 ter — trop dur en normale : retour à la version facile d'abord");
+  const l = scenario("5. Gripper : séances espacées au plafond",
+    "Au plafond de reps, 2 séances à 14 jours d'écart ne suffisent pas : il en faut au moins 4.",
+    "grip-normale", [{ jour: 0 }, { jour: 14 }, { jour: 17 }, { jour: 21 }],
+    { preparer: () => { donnees.ajustements["grip-normale"] = { objectif: 8 }; } });
+  verifier(l.slice(0, 3).every(x => !x.a.changement?.chargeKg), "5 — pas de +1 kg avec seulement 2 ou 3 séances au plafond");
+  verifier(l[3].a.changement?.chargeKg === 11, "5 — +1 kg à la 4e séance au plafond (plus de 2 semaines)");
 }
 
 /* ---------- 6. Gripper au maximum ---------- */
 {
-  reinitialiser();
-  donnees.ajustements["grip-normale"] = { chargeKg: 12 };
-  [0, 3, 7, 10, 14].forEach(j => seanceFictive("grip-normale", j, { series: "toutes" }));
-  const a = analyser("grip-normale");
-  verifier(!a.changement || a.changement.chargeKg <= 12, "6 — jamais au-dessus de 12 kg (maximum du gripper)");
-  html += `<section class="carte"><h2>6. Gripper au maximum (12 kg)</h2><p><strong>${a.titre}</strong></p><p class="doux">${a.raison}</p></section>`;
+  const l = scenario("6. Gripper au maximum (12 kg)", "Au maximum du gripper, l'app ne propose plus de monter.",
+    "grip-normale", [0, 3, 7, 10, 14].map(j => ({ jour: j })),
+    { preparer: () => { donnees.ajustements["grip-normale"] = { chargeKg: 12, objectif: 8 }; } });
+  verifier(l.every(x => !x.a.changement || (x.a.changement.chargeKg ?? 12) <= 12), "6 — jamais au-dessus de 12 kg");
+  verifier(/maximale/.test(l[4].a.titre), "6 — message « charge maximale atteinte »");
 }
 
 /* ---------- 7. Douleur ---------- */
