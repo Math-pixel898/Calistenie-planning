@@ -1232,6 +1232,64 @@ function brancherVocal(idSeance, ids) {
   };
 }
 
+// ----- Schéma des muscles (silhouette simplifiée, dessinée en SVG) -----
+// Chaque forme appartient à une zone ; "neutre" = partie du corps jamais colorée.
+const SILHOUETTE = {
+  devant: [
+    ["neutre", '<ellipse cx="60" cy="20" rx="12" ry="14"/>'],
+    ["neutre", '<rect x="54" y="32" width="12" height="9" rx="3"/>'],
+    ["epaules", '<ellipse cx="38" cy="52" rx="10" ry="10"/><ellipse cx="82" cy="52" rx="10" ry="10"/>'],
+    ["pectoraux", '<rect x="44" y="43" width="15.5" height="25" rx="7"/><rect x="60.5" y="43" width="15.5" height="25" rx="7"/>'],
+    ["biceps", '<rect x="27" y="63" width="12" height="31" rx="6"/><rect x="81" y="63" width="12" height="31" rx="6"/>'],
+    ["avantbras", '<rect x="24" y="96" width="11" height="36" rx="5.5"/><rect x="85" y="96" width="11" height="36" rx="5.5"/>'],
+    ["mains", '<ellipse cx="29" cy="141" rx="6" ry="8"/><ellipse cx="91" cy="141" rx="6" ry="8"/>'],
+    ["obliques", '<rect x="41" y="71" width="7" height="41" rx="3.5"/><rect x="72" y="71" width="7" height="41" rx="3.5"/>'],
+    ["abdos", '<rect x="49.5" y="70" width="21" height="46" rx="7"/>'],
+    ["neutre", '<rect x="43" y="115" width="34" height="16" rx="8"/>'],
+    ["quadriceps", '<rect x="42" y="130" width="17" height="58" rx="8.5"/><rect x="61" y="130" width="17" height="58" rx="8.5"/>'],
+    ["neutre", '<rect x="44" y="192" width="13" height="44" rx="6.5"/><rect x="63" y="192" width="13" height="44" rx="6.5"/>'],
+    ["neutre", '<ellipse cx="50" cy="241" rx="8" ry="4.5"/><ellipse cx="70" cy="241" rx="8" ry="4.5"/>']
+  ],
+  derriere: [
+    ["neutre", '<ellipse cx="60" cy="20" rx="12" ry="14"/>'],
+    ["neutre", '<rect x="54" y="32" width="12" height="9" rx="3"/>'],
+    ["trapezes", '<path d="M60 38 L77 46 L69 60 L60 80 L51 60 L43 46 Z"/>'],
+    ["epaules", '<ellipse cx="38" cy="52" rx="10" ry="10"/><ellipse cx="82" cy="52" rx="10" ry="10"/>'],
+    ["dorsaux", '<path d="M45 59 L53 66 L57 97 L50 103 L42 86 Z"/><path d="M75 59 L67 66 L63 97 L70 103 L78 86 Z"/>'],
+    ["triceps", '<rect x="27" y="63" width="12" height="31" rx="6"/><rect x="81" y="63" width="12" height="31" rx="6"/>'],
+    ["avantbras", '<rect x="24" y="96" width="11" height="36" rx="5.5"/><rect x="85" y="96" width="11" height="36" rx="5.5"/>'],
+    ["mains", '<ellipse cx="29" cy="141" rx="6" ry="8"/><ellipse cx="91" cy="141" rx="6" ry="8"/>'],
+    ["lombaires", '<rect x="53" y="99" width="14" height="17" rx="5"/>'],
+    ["fessiers", '<ellipse cx="51" cy="127" rx="10" ry="11"/><ellipse cx="69" cy="127" rx="10" ry="11"/>'],
+    ["ischios", '<rect x="42" y="140" width="17" height="50" rx="8.5"/><rect x="61" y="140" width="17" height="50" rx="8.5"/>'],
+    ["mollets", '<ellipse cx="50.5" cy="210" rx="7.5" ry="18"/><ellipse cx="69.5" cy="210" rx="7.5" ry="18"/>'],
+    ["neutre", '<ellipse cx="50" cy="241" rx="8" ry="4.5"/><ellipse cx="70" cy="241" rx="8" ry="4.5"/>']
+  ]
+};
+
+function carteMuscles(exo) {
+  if (!exo.muscles) return "";
+  const { principaux = [], secondaires = [] } = exo.muscles;
+  const classe = zone => zone === "neutre" ? "neutre"
+    : principaux.includes(zone) ? "muscle principal"
+    : secondaires.includes(zone) ? "muscle secondaire" : "muscle";
+  const vue = (nom, x, titre) => `<g transform="translate(${x} 0)">
+      ${SILHOUETTE[nom].map(([zone, forme]) => `<g class="${classe(zone)}">${forme}</g>`).join("")}
+      <text class="vue" x="60" y="260" text-anchor="middle">${titre}</text></g>`;
+  const noms = liste => liste.map(m => PROGRAMME.nomsMuscles?.[m] || m).join(", ");
+  return `<div class="carte schema-muscles">
+      <h3>Muscles travaillés</h3>
+      <svg viewBox="0 0 250 266" role="img" aria-label="Muscles travaillés : ${esc(noms(principaux))}">
+        ${vue("devant", 0, "Devant")}${vue("derriere", 130, "Derrière")}
+      </svg>
+      <div class="legende-muscles">
+        ${principaux.length ? `<div><span class="pastille-couleur principal"></span><span><strong>Travaille surtout :</strong> ${esc(noms(principaux))}</span></div>` : ""}
+        ${secondaires.length ? `<div><span class="pastille-couleur secondaire"></span><span><strong>Aide aussi :</strong> ${esc(noms(secondaires))}</span></div>` : ""}
+      </div>
+      <p class="doux">Schéma simplifié, pour te repérer.</p>
+    </div>`;
+}
+
 // ----- Fiche d'un exercice + suivi -----
 function pageExercice(idSeance, idExo, juste) {
   const exo = PROGRAMME.exercices[idExo];
@@ -1264,6 +1322,8 @@ function pageExercice(idSeance, idExo, juste) {
         ? `<div class="doux">Semaines 1-${REGLES.semainesPhaseDebut} : ${exo.series.debut} série(s), puis ${exo.series.plein}.</div>` : ""}
       ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.cible[0]}-${exo.cible[1]}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
     </div>`;
+
+  html += carteMuscles(exo);
 
   if (!avecCharge(exo) && exo.facile) {
     const facile = p.version === "facile";

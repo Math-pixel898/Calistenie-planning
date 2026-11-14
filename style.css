@@ -21,7 +21,8 @@
   --surligne: var(--accent-doux);
   --ombre: 0 1px 2px rgba(20, 22, 27, 0.04), 0 6px 20px rgba(20, 22, 27, 0.06);
   --ombre-forte: 0 10px 40px rgba(20, 22, 27, 0.18);
-  --verre: rgba(255, 255, 255, 0.78);
+  --verre: rgba(255, 255, 255, 0.78);      /* barre du bas */
+  --fond-verre: rgba(243, 244, 247, 0.86); /* en-tête : même teinte que le fond */
   --rayon: 20px;
 }
 
@@ -43,6 +44,7 @@
     --ombre: none;
     --ombre-forte: 0 10px 40px rgba(0, 0, 0, 0.55);
     --verre: rgba(22, 24, 29, 0.78);
+    --fond-verre: rgba(11, 12, 15, 0.86);
   }
 }
 
@@ -75,10 +77,10 @@ li { margin-bottom: 4px; }
   position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; gap: 4px;
   padding: calc(14px + env(safe-area-inset-top)) 18px 12px;
-  background: var(--verre);
+  background: var(--fond-verre);
   -webkit-backdrop-filter: saturate(180%) blur(18px);
   backdrop-filter: saturate(180%) blur(18px);
-  border-bottom: 1px solid var(--bord);
+  border-bottom: 1px solid transparent;
 }
 .entete h1 {
   font-size: 1.35rem; font-weight: 800; margin: 0;
@@ -440,3 +442,16 @@ body.avec-minuteur .toast { bottom: calc(250px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ---------- Schéma des muscles ---------- */
+.schema-muscles svg { display: block; width: 100%; max-width: 320px; margin: 4px auto 6px; }
+.schema-muscles .muscle { fill: var(--carte-2); stroke: var(--carte); stroke-width: 1.5; }
+.schema-muscles .neutre { fill: var(--carte-2); stroke: var(--carte); stroke-width: 1.5; opacity: 0.8; }
+.schema-muscles .muscle.principal { fill: var(--accent); }
+.schema-muscles .muscle.secondaire { fill: color-mix(in srgb, var(--accent) 42%, var(--carte-2)); }
+.schema-muscles .vue { fill: var(--texte-doux); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+.legende-muscles { display: grid; gap: 6px; margin-top: 6px; font-size: 0.92rem; }
+.legende-muscles div { display: flex; gap: 10px; align-items: baseline; }
+.legende-muscles .pastille-couleur { flex: 0 0 12px; height: 12px; border-radius: 4px; transform: translateY(1px); }
+.legende-muscles .principal { background: var(--accent); }
+.legende-muscles .secondaire { background: color-mix(in srgb, var(--accent) 42%, var(--carte-2)); }

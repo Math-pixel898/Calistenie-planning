@@ -23,6 +23,10 @@
    - etapes     : comment faire, en quelques étapes
    - facile     : version plus facile (sélectionnable sur la fiche)
    - versionDepart : "facile" pour commencer par la version facile (reprise)
+   - muscles    : { principaux: [...], secondaires: [...] } pour le schéma.
+                  Noms possibles : epaules, pectoraux, biceps, triceps, avantbras,
+                  mains, abdos, obliques, trapezes, dorsaux, lombaires, fessiers,
+                  quadriceps, ischios, mollets
    - difficile  : version plus difficile
    - note       : (optionnel) prudence, doute, conseil
    ===================================================================== */
@@ -92,6 +96,15 @@ const PROGRAMME = {
     ]
   },
 
+  /* ----- Noms des muscles (pour le schéma des fiches) ----- */
+  nomsMuscles: {
+    epaules: "Épaules", pectoraux: "Pectoraux", biceps: "Biceps", triceps: "Triceps",
+    avantbras: "Avant-bras", mains: "Doigts / prise", abdos: "Abdominaux", obliques: "Obliques",
+    trapezes: "Haut du dos (trapèzes)", dorsaux: "Grand dorsal", lombaires: "Bas du dos",
+    fessiers: "Fessiers", quadriceps: "Quadriceps (avant des cuisses)",
+    ischios: "Ischio-jambiers (arrière des cuisses)", mollets: "Mollets"
+  },
+
   /* ----- Échauffements -----
      Proposés en haut d'une séance qui a la ligne  echauffement: "poignets".
      Tu peux les passer. "secondes" = durée de chaque mouvement. */
@@ -156,6 +169,7 @@ const PROGRAMME = {
     /* ===================== POUSSER ===================== */
     "pompes-mur": {
       nom: "Pompes au mur (échauffement)", type: "reps",
+      muscles: { principaux: ["pectoraux"], secondaires: ["epaules", "triceps"] },
       series: { debut: 1, plein: 2 }, cible: [15, 20], repos: [30, 45],
       niveau: "Très facile — sert à chauffer épaules et poignets",
       etapes: [
@@ -169,6 +183,7 @@ const PROGRAMME = {
     },
     "pompes-classiques": {
       nom: "Pompes classiques", type: "reps",
+      muscles: { principaux: ["pectoraux", "triceps"], secondaires: ["epaules", "abdos"] },
       series: { debut: 2, plein: 3 }, cible: [10, 15], repos: [60, 90],
       niveau: "Moyen — environ la moitié de ton max (30) pour la reprise",
       etapes: [
@@ -182,6 +197,7 @@ const PROGRAMME = {
     },
     "pompes-ecartees": {
       nom: "Pompes écartées", type: "reps",
+      muscles: { principaux: ["pectoraux"], secondaires: ["epaules", "triceps"] },
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [60, 90],
       niveau: "Moyen — insiste sur les pectoraux",
       etapes: [
@@ -196,6 +212,7 @@ const PROGRAMME = {
     },
     "pompes-diamant": {
       nom: "Pompes diamant", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["triceps"], secondaires: ["pectoraux", "epaules"] },
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 90],
       niveau: "Difficile — insiste sur les triceps",
       etapes: [
@@ -210,6 +227,7 @@ const PROGRAMME = {
     },
     "chenille": {
       nom: "Chenille (inchworm) + pompe", type: "reps",
+      muscles: { principaux: ["epaules", "abdos"], secondaires: ["pectoraux", "triceps", "ischios"] },
       series: { debut: 2, plein: 2 }, cible: [5, 8], repos: [45, 60],
       niveau: "Moyen — mobilité + gainage + pousser",
       etapes: [
@@ -223,6 +241,7 @@ const PROGRAMME = {
     },
     "pompes-piquees": {
       nom: "Pompes piquées (prépa poirier)", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["epaules"], secondaires: ["triceps", "trapezes"] },
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 90],
       niveau: "Moyen à difficile — épaules, prépare au poirier",
       etapes: [
@@ -238,6 +257,7 @@ const PROGRAMME = {
     /* ===================== ABDOS ===================== */
     "dead-bug": {
       nom: "Dead bug", type: "reps", parCote: true,
+      muscles: { principaux: ["abdos"], secondaires: ["obliques"] },
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [30, 45],
       niveau: "Facile — apprend à gainer sans cambrer",
       etapes: [
@@ -251,6 +271,7 @@ const PROGRAMME = {
     },
     "planche": {
       nom: "Gainage planche", type: "temps",
+      muscles: { principaux: ["abdos"], secondaires: ["obliques", "epaules", "fessiers"] },
       series: { debut: 2, plein: 3 }, cible: [20, 45], repos: [30, 45],
       niveau: "Moyen",
       etapes: [
@@ -264,6 +285,7 @@ const PROGRAMME = {
     },
     "planche-laterale": {
       nom: "Gainage latéral", type: "temps", parCote: true,
+      muscles: { principaux: ["obliques"], secondaires: ["abdos", "epaules", "fessiers"] },
       series: { debut: 2, plein: 2 }, cible: [15, 30], repos: [30, 45],
       niveau: "Moyen",
       etapes: [
@@ -277,6 +299,7 @@ const PROGRAMME = {
     },
     "releves-jambes": {
       nom: "Relevés de jambes allongé", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["abdos"], secondaires: ["quadriceps"] },
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [45, 60],
       niveau: "Moyen",
       etapes: [
@@ -290,6 +313,7 @@ const PROGRAMME = {
     },
     "position-creuse": {
       nom: "Position creuse (hollow hold)", type: "temps", versionDepart: "facile",
+      muscles: { principaux: ["abdos"], secondaires: ["obliques", "quadriceps"] },
       series: { debut: 2, plein: 2 }, cible: [15, 30], repos: [30, 45],
       niveau: "Difficile — base de la gym au sol",
       etapes: [
@@ -303,6 +327,7 @@ const PROGRAMME = {
     },
     "grimpeurs-lents": {
       nom: "Grimpeurs lents (mountain climbers)", type: "reps", parCote: true,
+      muscles: { principaux: ["abdos"], secondaires: ["obliques", "epaules", "quadriceps"] },
       series: { debut: 2, plein: 2 }, cible: [8, 12], repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
@@ -318,6 +343,7 @@ const PROGRAMME = {
     /* ===================== JAMBES ===================== */
     "squat": {
       nom: "Squat au poids du corps", type: "reps",
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "abdos"] },
       series: { debut: 2, plein: 3 }, cible: [12, 20], repos: [45, 60],
       niveau: "Facile à moyen",
       etapes: [
@@ -331,6 +357,7 @@ const PROGRAMME = {
     },
     "fentes-arriere": {
       nom: "Fentes arrière alternées", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "mollets"] },
       series: { debut: 2, plein: 3 }, cible: [8, 10], repos: [45, 60],
       niveau: "Moyen",
       etapes: [
@@ -344,6 +371,7 @@ const PROGRAMME = {
     },
     "pont-fessier": {
       nom: "Pont fessier", type: "reps",
+      muscles: { principaux: ["fessiers"], secondaires: ["ischios", "lombaires"] },
       series: { debut: 2, plein: 3 }, cible: [12, 20], repos: [45, 60],
       niveau: "Facile",
       etapes: [
@@ -357,6 +385,7 @@ const PROGRAMME = {
     },
     "chaise-mur": {
       nom: "Chaise contre le mur", type: "temps",
+      muscles: { principaux: ["quadriceps"], secondaires: ["fessiers"] },
       series: { debut: 2, plein: 2 }, cible: [20, 45], repos: [45, 60],
       niveau: "Moyen",
       etapes: [
@@ -370,6 +399,7 @@ const PROGRAMME = {
     },
     "fentes-laterales": {
       nom: "Fentes latérales", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios"] },
       series: { debut: 1, plein: 2 }, cible: [6, 8], repos: [30, 45],
       niveau: "Moyen",
       etapes: [
@@ -383,6 +413,7 @@ const PROGRAMME = {
     },
     "mollets": {
       nom: "Mollets debout", type: "reps",
+      muscles: { principaux: ["mollets"], secondaires: [] },
       series: { debut: 2, plein: 2 }, cible: [15, 25], repos: [30, 45],
       niveau: "Facile",
       etapes: [
@@ -398,6 +429,7 @@ const PROGRAMME = {
     /* ===================== DOS ===================== */
     "suspension-passive": {
       nom: "Suspension à la barre", type: "temps",
+      muscles: { principaux: ["avantbras", "mains"], secondaires: ["dorsaux", "epaules"] },
       series: { debut: 2, plein: 3 }, cible: [15, 30], repos: [60, 90],
       niveau: "Facile à moyen — sollicite aussi le grip",
       etapes: [
@@ -411,6 +443,7 @@ const PROGRAMME = {
     },
     "tirages-omoplates": {
       nom: "Tirages d'omoplates (scapula pull-ups)", type: "reps",
+      muscles: { principaux: ["trapezes", "dorsaux"], secondaires: ["avantbras"] },
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 75],
       niveau: "Facile à moyen",
       etapes: [
@@ -424,6 +457,7 @@ const PROGRAMME = {
     },
     "tractions-negatives": {
       nom: "Tractions négatives", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["dorsaux", "biceps"], secondaires: ["trapezes", "avantbras", "epaules"] },
       series: { debut: 2, plein: 3 }, cible: [3, 5], repos: [90, 120],
       niveau: "Difficile",
       etapes: [
@@ -438,6 +472,7 @@ const PROGRAMME = {
     },
     "tractions-australiennes": {
       nom: "Tractions australiennes (barre basse)", type: "reps",
+      muscles: { principaux: ["dorsaux", "trapezes"], secondaires: ["biceps", "epaules", "avantbras"] },
       series: { debut: 2, plein: 3 }, cible: [6, 12], repos: [60, 90],
       niveau: "Moyen",
       etapes: [
@@ -452,6 +487,7 @@ const PROGRAMME = {
     },
     "superman": {
       nom: "Superman au sol", type: "reps",
+      muscles: { principaux: ["lombaires"], secondaires: ["fessiers", "trapezes"] },
       series: { debut: 2, plein: 3 }, cible: [10, 15], repos: [30, 45],
       niveau: "Facile",
       etapes: [
@@ -465,6 +501,7 @@ const PROGRAMME = {
     },
     "rowing-sac": {
       nom: "Rowing avec sac à dos", type: "reps", parCote: true,
+      muscles: { principaux: ["dorsaux", "trapezes"], secondaires: ["biceps", "epaules"] },
       series: { debut: 2, plein: 3 }, cible: [10, 15], repos: [45, 60],
       niveau: "Moyen — le poids dépend de ce que tu mets dans le sac",
       etapes: [
@@ -479,6 +516,7 @@ const PROGRAMME = {
     },
     "ytw": {
       nom: "Y-T-W allongé", type: "reps",
+      muscles: { principaux: ["trapezes", "epaules"], secondaires: ["lombaires"] },
       series: { debut: 2, plein: 2 }, cible: [6, 8], repos: [30, 45],
       niveau: "Facile — haut du dos et épaules",
       etapes: [
@@ -492,6 +530,7 @@ const PROGRAMME = {
     },
     "anges-inverses": {
       nom: "Anges inversés (au sol)", type: "reps",
+      muscles: { principaux: ["trapezes", "epaules"], secondaires: ["lombaires"] },
       series: { debut: 2, plein: 2 }, cible: [8, 12], repos: [30, 45],
       niveau: "Facile",
       etapes: [
@@ -505,6 +544,7 @@ const PROGRAMME = {
     },
     "ecartement-serviette": {
       nom: "Écartement de serviette (isométrique)", type: "temps",
+      muscles: { principaux: ["trapezes", "epaules"], secondaires: [] },
       series: { debut: 2, plein: 2 }, cible: [15, 30], repos: [30, 45],
       niveau: "Facile",
       etapes: [
@@ -520,6 +560,7 @@ const PROGRAMME = {
     /* ===================== BRAS ===================== */
     "pompes-serrees": {
       nom: "Pompes serrées (triceps)", type: "reps",
+      muscles: { principaux: ["triceps"], secondaires: ["pectoraux", "epaules"] },
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [60, 90],
       niveau: "Moyen",
       etapes: [
@@ -533,6 +574,7 @@ const PROGRAMME = {
     },
     "dips-chaise": {
       nom: "Dips sur chaise", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["triceps"], secondaires: ["epaules", "pectoraux"] },
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [60, 90],
       niveau: "Moyen",
       etapes: [
@@ -547,6 +589,7 @@ const PROGRAMME = {
     },
     "curl-sac": {
       nom: "Curl biceps avec sac à dos", type: "reps",
+      muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
       series: { debut: 2, plein: 3 }, cible: [10, 15], repos: [45, 60],
       niveau: "Moyen — dépend du poids du sac",
       etapes: [
@@ -561,6 +604,7 @@ const PROGRAMME = {
     },
     "curl-serviette": {
       nom: "Curl isométrique serviette", type: "temps",
+      muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
       series: { debut: 2, plein: 2 }, cible: [15, 25], repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
@@ -574,6 +618,7 @@ const PROGRAMME = {
     },
     "pompes-sphinx": {
       nom: "Pompes sphinx (triceps)", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 75],
       niveau: "Difficile",
       etapes: [
@@ -587,6 +632,7 @@ const PROGRAMME = {
     },
     "pompes-doigts": {
       nom: "Pompes inclinées bout des doigts", type: "reps", versionDepart: "facile",
+      muscles: { principaux: ["mains", "avantbras"], secondaires: ["pectoraux", "triceps"] },
       series: { debut: 2, plein: 2 }, cible: [5, 10], repos: [60, 90],
       niveau: "Moyen — le gripper ne travaille pas l'appui au sol",
       etapes: [
@@ -607,6 +653,7 @@ const PROGRAMME = {
        Résistances : haute ≈ 10 kg, haute+ ≈ 11 kg, moyenne ≈ 9 kg, basse ≈ 8 kg */
     "grip-normale": {
       nom: "Gripper — position normale", type: "reps", parCote: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 4 }, cible: [5, 8], repos: [60, 120],
       niveau: "Haute résistance", chargeKg: 10,
       etapes: [
@@ -620,6 +667,7 @@ const PROGRAMME = {
     },
     "grip-inversee": {
       nom: "Gripper — position inversée", type: "reps", parCote: true, variante: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
@@ -634,6 +682,7 @@ const PROGRAMME = {
     },
     "grip-negatifs": {
       nom: "Gripper — négatifs (position normale)", type: "reps", parCote: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 2 }, cible: [4, 5], repos: [120, 120],
       niveau: "Haute+ résistance", chargeKg: 11,
       etapes: [
@@ -648,6 +697,7 @@ const PROGRAMME = {
     },
     "grip-90": {
       nom: "Gripper — position à 90°", type: "reps", parCote: true, variante: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
@@ -662,6 +712,7 @@ const PROGRAMME = {
     },
     "grip-maintien": {
       nom: "Gripper — maintien fermé", type: "temps", parCote: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 3 }, cible: [10, 20], repos: [60, 120],
       niveau: "Résistance moyenne", chargeKg: 9,
       etapes: [
@@ -676,6 +727,7 @@ const PROGRAMME = {
     },
     "grip-lente-inversee": {
       nom: "Gripper — série lente inversée", type: "reps", parCote: true, variante: true,
+      muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
       series: { debut: 2, plein: 2 }, cible: [10, 12], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
