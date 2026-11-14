@@ -106,9 +106,13 @@ function prevu(idExo) {
   return {
     series: enPhaseDebut() ? exo.series.debut : exo.series.plein,
     cible: aj.cible || exo.cible,
-    chargeKg: aj.chargeKg !== undefined ? aj.chargeKg : exo.chargeKg
+    chargeKg: aj.chargeKg !== undefined ? aj.chargeKg : exo.chargeKg,
+    // "normale" ou "facile" (seulement pour les exercices sans charge)
+    version: exo.chargeKg !== undefined ? "normale" : (aj.version || exo.versionDepart || "normale")
   };
 }
+
+const estFacile = idExo => prevu(idExo).version === "facile";
 
 const avecCharge = exo => exo.chargeKg !== undefined;
 
@@ -184,6 +188,7 @@ function enregistrer({ seance, exo, resultat, series, chargeKg, douleur = [], do
     chargeKg: chargeKg !== undefined ? chargeKg : p.chargeKg,
     cible: p.cible.slice(),
     seriesPrevues: p.series,
+    version: p.version,
     douleur, douleurNote
   };
   donnees.journal.push(entree);
@@ -232,7 +237,8 @@ const RESULTATS = {
    --------------------------------------------------------------------- */
 const auTop = e => e.series && e.series.length >= e.seriesPrevues && e.series.every(r => r >= e.cible[1]);
 const sousLeBas = e => e.resultat === "dur" || (e.series && e.series.some(r => r < e.cible[0]));
-const memeNiveau = (a, b) => a.chargeKg === b.chargeKg && a.cible[0] === b.cible[0] && a.cible[1] === b.cible[1];
+const memeNiveau = (a, b) => a.chargeKg === b.chargeKg && a.cible[0] === b.cible[0] && a.cible[1] === b.cible[1]
+  && (a.version || "normale") === (b.version || "normale");
 
 function analyser(idExo) {
   const exo = PROGRAMME.exercices[idExo];
@@ -244,7 +250,7 @@ function analyser(idExo) {
   const pas = exo.type === "temps" ? REGLES.pasSecondes : REGLES.pasReps;
 
   // Si un ajustement a déjà été fait depuis cette entrée, on ne repropose rien
-  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, cible: p.cible });
+  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, cible: p.cible, version: p.version });
   const traitee = donnees.propositionsTraitees[derniere.id] || (dejaAjuste ? "acceptee" : null);
 
   // ----- Trop dur : proposer de baisser -----
@@ -259,6 +265,14 @@ function analyser(idExo) {
         titre: `Baisser à ${kg(nouvelle)} ?`,
         raison: `${pourquoi} Baisser d'un cran (${kg(p.chargeKg)} → ${kg(nouvelle)}) te permet de faire toutes tes séries correctement. Les tendons s'adaptent lentement : mieux vaut un peu trop facile qu'un peu trop dur.`,
         changement: { chargeKg: nouvelle }
+      };
+    }
+    if (p.version === "normale" && exo.facile) {
+      return {
+        entree: derniere, traitee, sens: "baisser",
+        titre: "Passer à la version facile ?",
+        raison: `${pourquoi} Proposition : garder la même fourchette mais faire la version facile (${exo.facile}) pour finir tes séries proprement. Tu repasseras à la version normale quand tu seras au top 2 semaines.`,
+        changement: { version: "facile" }
       };
     }
     const nouvelleCible = [Math.max(1, p.cible[0] - pas), Math.max(2, p.cible[1] - pas)];
@@ -308,6 +322,14 @@ function analyser(idExo) {
         changement: { chargeKg: nouvelle }
       };
     }
+    if (p.version === "facile") {
+      return {
+        entree: derniere, traitee, sens: "monter",
+        titre: "Passer à la version normale ?",
+        raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) en version facile sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On passe à la version normale avec la même fourchette. Tes reps vont baisser au début, c'est normal.`,
+        changement: { version: "normale" }
+      };
+    }
     const nouvelleCible = [p.cible[0] + pas, p.cible[1] + pas];
     return {
       entree: derniere, traitee, sens: "monter",
@@ -332,7 +354,7 @@ function accepterProposition(idExo) {
   donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], a.changement);
   donnees.historiqueAjustements.push({
     date: new Date().toISOString(), exo: idExo,
-    avant: { chargeKg: avant.chargeKg, cible: avant.cible },
+    avant: { chargeKg: avant.chargeKg, cible: avant.cible, version: avant.version },
     apres: a.changement, raison: a.raison
   });
   donnees.propositionsTraitees[a.entree.id] = "acceptee";
@@ -1089,7 +1111,7 @@ function pageSeance(idSeance) {
     html += `<a class="carte ligne-exo ${fait ? "fait" : ""}" href="#/exo/${idSeance}/${idExo}">
         <span class="num">${fait ? "✓" : i + 1}</span>
         <span class="infos"><strong>${esc(exo.nom)}</strong><br>
-          <span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? ` · <strong>${texteResistance(p.chargeKg)}</strong> ≈ ${kg(p.chargeKg)}` : ""} · repos ${texteRepos(exo.repos)}</span>
+          ${estFacile(idExo) ? `<span class="etiquette-facile">version facile</span> ` : ""}<span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? ` · <strong>${texteResistance(p.chargeKg)}</strong> ≈ ${kg(p.chargeKg)}` : ""} · repos ${texteRepos(exo.repos)}</span>
         </span>
         <span class="fleche doux">›</span>
       </a>`;
@@ -1243,10 +1265,24 @@ function pageExercice(idSeance, idExo, juste) {
       ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.cible[0]}-${exo.cible[1]}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
     </div>`;
 
+  if (!avecCharge(exo) && exo.facile) {
+    const facile = p.version === "facile";
+    html += `<div class="carte version">
+        <h3>Version</h3>
+        <div class="choix-version" role="group" aria-label="Version de l'exercice">
+          <button class="${facile ? "" : "actif"}" data-version="normale" aria-pressed="${!facile}">Normale</button>
+          <button class="${facile ? "actif" : ""}" data-version="facile" aria-pressed="${facile}">Facile</button>
+        </div>
+        ${facile ? `<p><strong>Tu fais la version facile :</strong> ${esc(exo.facile)}</p>
+          <p class="doux">Même fourchette de reps. L'app te proposera la version normale quand tu seras au top 2 semaines.</p>` : ""}
+        ${exo.versionDepart === "facile" && !donnees.ajustements[idExo]?.version ? `<p class="doux">Version facile conseillée pour la reprise.</p>` : ""}
+      </div>`;
+  }
+
   html += `<details class="carte" ${faitAujourdhui(idExo) ? "" : "open"}><summary><h3>Comment faire</h3></summary><ol class="etapes">
       ${exo.etapes.map(e => `<li>${esc(e)}</li>`).join("")}</ol>
       ${exo.note ? `<p class="note">⚠️ ${esc(exo.note)}</p>` : ""}
-      <p><strong>Plus facile :</strong> ${esc(exo.facile)}</p>
+      <p><strong>${!avecCharge(exo) && p.version === "facile" ? "Version facile (en cours)" : "Plus facile"} :</strong> ${esc(exo.facile)}</p>
       <p><strong>Plus difficile :</strong> ${esc(exo.difficile)}</p>
     </details>`;
 
@@ -1310,7 +1346,7 @@ function pageExercice(idSeance, idExo, juste) {
   const passees = entreesDe(idExo).slice(-5).reverse();
   if (passees.length) {
     html += `<div class="carte"><h3>Dernières fois</h3>${passees.map(e =>
-      `<div class="ligne-histo">${RESULTATS[e.resultat].emoji} ${dateCourte(e.date)} — ${e.series ? e.series.join("/") + " " + unite(exo) : "sans détail"}${e.chargeKg !== undefined && e.chargeKg !== null ? " · " + kg(e.chargeKg) : ""}${e.douleur?.length ? " · 🩹" : ""}</div>`).join("")}
+      `<div class="ligne-histo">${RESULTATS[e.resultat].emoji} ${dateCourte(e.date)} — ${e.series ? e.series.join("/") + " " + unite(exo) : "sans détail"}${e.version === "facile" ? " (facile)" : ""}${e.chargeKg !== undefined && e.chargeKg !== null ? " · " + kg(e.chargeKg) : ""}${e.douleur?.length ? " · 🩹" : ""}</div>`).join("")}
       <a class="lien" href="#/historique/${idExo}">Voir le graphique ›</a></div>`;
   }
 
@@ -1322,6 +1358,13 @@ function pageExercice(idSeance, idExo, juste) {
 
 function brancherSuivi(idSeance, idExo, entreeJuste) {
   const exo = PROGRAMME.exercices[idExo];
+  // Choix Normale / Facile (retenu pour les prochaines fois)
+  document.querySelectorAll("[data-version]").forEach(b => b.onclick = () => {
+    donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], { version: b.dataset.version });
+    sauverDonnees();
+    toast(b.dataset.version === "facile" ? "Version facile choisie" : "Version normale choisie");
+    afficher({ garderDefilement: true });
+  });
   if (entreeJuste) {
     $("#annuler").onclick = () => {
       annulerEntree(entreeJuste.id);
@@ -1426,7 +1469,9 @@ function pageHistorique(idExoChoisi) {
   const ajusts = donnees.historiqueAjustements.filter(a => a.exo === idExo);
   if (ajusts.length) {
     html += `<div class="carte"><h3>Changements acceptés</h3>${ajusts.slice().reverse().map(a =>
-      `<div class="ligne-histo">${dateCourte(a.date)} — ${a.apres.chargeKg !== undefined ? kg(a.avant.chargeKg) + " → " + kg(a.apres.chargeKg) : a.avant.cible.join("-") + " → " + a.apres.cible.join("-")}</div>`).join("")}</div>`;
+      `<div class="ligne-histo">${dateCourte(a.date)} — ${a.apres.chargeKg !== undefined ? kg(a.avant.chargeKg) + " → " + kg(a.apres.chargeKg)
+        : a.apres.version ? "version " + (a.avant.version || "normale") + " → " + a.apres.version
+        : a.avant.cible.join("-") + " → " + a.apres.cible.join("-")}</div>`).join("")}</div>`;
   }
 
   // Séances passées, regroupées par jour
@@ -1582,7 +1627,7 @@ function pageReglages() {
 
     ${ajusts.length ? `<div class="carte"><h3>Ajustements en cours</h3>${ajusts.map(([id, a]) => {
       const x = PROGRAMME.exercices[id];
-      return `<div class="ligne-histo">${esc(x.nom)} : ${a.cible ? a.cible.join("-") + " " + unite(x) : ""}${a.chargeKg !== undefined ? " " + kg(a.chargeKg) : ""}
+      return `<div class="ligne-histo">${esc(x.nom)} : ${a.cible ? a.cible.join("-") + " " + unite(x) : ""}${a.chargeKg !== undefined ? " " + kg(a.chargeKg) : ""}${a.version ? " version " + a.version : ""}
         <button class="lien" data-reinit="${id}">revenir au programme</button></div>`;
     }).join("")}</div>` : ""}
 

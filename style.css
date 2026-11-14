@@ -315,3 +315,15 @@ ol.mouvements { padding-left: 20px; margin: 6px 0 10px; }
 ol.mouvements li { margin-bottom: 8px; padding: 4px 6px; border-radius: 8px; }
 ol.mouvements li.en-cours { background: var(--surligne); }
 ol.mouvements li.fait { opacity: 0.55; }
+
+/* Version normale / facile */
+.choix-version { display: flex; border: 1px solid var(--bord); border-radius: 12px; overflow: hidden; }
+.choix-version button {
+  flex: 1; font: inherit; font-weight: 600; padding: 10px; border: 0; cursor: pointer;
+  background: var(--carte); color: var(--texte);
+}
+.choix-version button.actif { background: var(--accent); color: var(--accent-texte); }
+.etiquette-facile {
+  font-size: 0.72rem; font-weight: 700; padding: 1px 7px; border-radius: 99px;
+  border: 1px solid var(--orange); color: var(--orange);
+}

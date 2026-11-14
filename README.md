@@ -12,11 +12,15 @@ Elle s'adapte à tes performances avec des règles simples (sans IA, sans clé d
 - **Historique** et graphiques par exercice.
 - **Sauvegarde** : export / import d'un fichier JSON.
 
+## Vérifier les règles
+Ouvre `tests.html` (ex. https://math-pixel898.github.io/Calistenie-planning/tests.html) : la page simule plusieurs semaines de séances fictives et montre ce que l'app propose. Tes vraies données ne sont pas touchées.
+
 ## Les fichiers
 | Fichier | Rôle |
 |---|---|
 | `programme.js` | **tes exercices, séances, planning et règles** — le seul fichier à modifier |
 | `app.js` | le fonctionnement de l'app (commenté) |
+| `tests.html`, `tests.js` | la page de tests des règles d'adaptation |
 | `index.html`, `style.css` | la page et son apparence (mode sombre automatique) |
 | `manifest.json`, `sw.js`, `icones/` | installation sur l'écran d'accueil et mode hors connexion |
 

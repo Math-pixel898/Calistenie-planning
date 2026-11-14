@@ -21,7 +21,8 @@
    - niveau     : la difficulté / résistance, en texte
    - chargeKg   : (optionnel) la charge en kg, pour le gripper
    - etapes     : comment faire, en quelques étapes
-   - facile     : version plus facile
+   - facile     : version plus facile (sélectionnable sur la fiche)
+   - versionDepart : "facile" pour commencer par la version facile (reprise)
    - difficile  : version plus difficile
    - note       : (optionnel) prudence, doute, conseil
    ===================================================================== */
@@ -176,7 +177,7 @@ const PROGRAMME = {
         "Coudes à environ 45° du corps (pas en croix).",
         "Remonte en poussant fort, sans laisser tomber les hanches."
       ],
-      facile: "Mains surélevées (table, lit) ou sur les genoux.",
+      facile: "Mains surélevées sur une table ou un lit stable (plus c'est haut, plus c'est facile).",
       difficile: "Descente lente en 3-4 secondes + pause 1 s en bas."
     },
     "pompes-ecartees": {
@@ -189,12 +190,12 @@ const PROGRAMME = {
         "Ne descends pas plus bas que ce qui est confortable pour les épaules.",
         "Remonte en contrôlant."
       ],
-      facile: "Sur les genoux ou mains surélevées.",
+      facile: "Mains surélevées sur une table ou un lit stable, ou sur les genoux.",
       difficile: "Pieds surélevés sur une chaise ou un lit.",
       note: "Si les épaules tirent de façon désagréable, réduis l'écartement."
     },
     "pompes-diamant": {
-      nom: "Pompes diamant", type: "reps",
+      nom: "Pompes diamant", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 90],
       niveau: "Difficile — insiste sur les triceps",
       etapes: [
@@ -203,7 +204,7 @@ const PROGRAMME = {
         "Descends jusqu'à ce que la poitrine approche des mains.",
         "Remonte en poussant."
       ],
-      facile: "Sur les genoux, ou mains un peu moins rapprochées.",
+      facile: "Mains rapprochées mais surélevées sur une table ou un lit stable (ou sur les genoux).",
       difficile: "Pieds surélevés.",
       note: "Cet exercice peut charger les poignets et les coudes : si ça gêne, prends la version facile."
     },
@@ -217,11 +218,11 @@ const PROGRAMME = {
         "Fais une pompe.",
         "Ramène les mains vers les pieds en marchant, puis redresse-toi. = 1 rep."
       ],
-      facile: "Sans la pompe au milieu.",
+      facile: "Sans la pompe au milieu : juste avancer et reculer les mains.",
       difficile: "Avance les mains plus loin que la position de pompe avant de faire la pompe."
     },
     "pompes-piquees": {
-      nom: "Pompes piquées (prépa poirier)", type: "reps",
+      nom: "Pompes piquées (prépa poirier)", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 90],
       niveau: "Moyen à difficile — épaules, prépare au poirier",
       etapes: [
@@ -230,7 +231,7 @@ const PROGRAMME = {
         "Plie les coudes pour amener le haut de la tête vers le sol, devant les mains.",
         "Pousse pour revenir en haut."
       ],
-      facile: "Pieds plus loin des mains (angle moins vertical), amplitude réduite.",
+      facile: "Pieds plus loin des mains (V moins pointu) et ne descendre qu'à mi-chemin.",
       difficile: "Pieds surélevés sur une chaise ou un lit."
     },
 
@@ -245,7 +246,7 @@ const PROGRAMME = {
         "Tends lentement un bras derrière toi et la jambe opposée vers l'avant.",
         "Reviens et change de côté. Le dos ne doit pas décoller."
       ],
-      facile: "Bouge seulement les jambes.",
+      facile: "Bouge seulement les jambes, une à la fois, bras immobiles.",
       difficile: "Mouvement très lent (3 s pour tendre)."
     },
     "planche": {
@@ -258,7 +259,7 @@ const PROGRAMME = {
         "Rentre légèrement le nombril, respire normalement.",
         "Arrête dès que le bas du dos se creuse."
       ],
-      facile: "Sur les genoux.",
+      facile: "Sur les genoux (corps aligné des genoux à la tête).",
       difficile: "Lever un pied ou un bras en alternance."
     },
     "planche-laterale": {
@@ -271,11 +272,11 @@ const PROGRAMME = {
         "Monte les hanches pour aligner le corps.",
         "Tiens, puis change de côté."
       ],
-      facile: "Genoux pliés au sol.",
+      facile: "Genou du dessous plié au sol.",
       difficile: "Lever la jambe du dessus."
     },
     "releves-jambes": {
-      nom: "Relevés de jambes allongé", type: "reps",
+      nom: "Relevés de jambes allongé", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [45, 60],
       niveau: "Moyen",
       etapes: [
@@ -284,11 +285,11 @@ const PROGRAMME = {
         "Monte les jambes jusqu'à la verticale.",
         "Redescends lentement sans toucher le sol si possible."
       ],
-      facile: "Genoux pliés.",
+      facile: "Genoux pliés à 90° : monter les genoux vers la poitrine puis redescendre les pieds près du sol.",
       difficile: "Descente en 4 secondes, ou relevés suspendu à la barre (genoux)."
     },
     "position-creuse": {
-      nom: "Position creuse (hollow hold)", type: "temps",
+      nom: "Position creuse (hollow hold)", type: "temps", versionDepart: "facile",
       series: { debut: 2, plein: 2 }, cible: [15, 30], repos: [30, 45],
       niveau: "Difficile — base de la gym au sol",
       etapes: [
@@ -297,7 +298,7 @@ const PROGRAMME = {
         "Bras tendus le long des oreilles (ou vers les pieds, plus facile).",
         "Tiens sans que le bas du dos décolle."
       ],
-      facile: "Genoux pliés et bras vers les pieds.",
+      facile: "Genoux pliés au-dessus des hanches et bras tendus vers les pieds.",
       difficile: "Jambes plus basses, bras derrière la tête."
     },
     "grimpeurs-lents": {
@@ -310,7 +311,7 @@ const PROGRAMME = {
         "Repose le pied et change de jambe.",
         "Garde le dos plat tout le long."
       ],
-      facile: "Mains sur une chaise ou un lit.",
+      facile: "Mains sur une chaise calée contre un mur ou sur un lit.",
       difficile: "Genou vers le coude opposé."
     },
 
@@ -325,7 +326,7 @@ const PROGRAMME = {
         "Genoux dans l'axe des pieds, talons au sol, dos droit.",
         "Remonte en poussant dans tout le pied."
       ],
-      facile: "S'asseoir sur une chaise et se relever.",
+      facile: "S'asseoir sur une chaise et se relever sans t'aider des mains.",
       difficile: "Pause de 2 s en bas, ou descente en 3 s."
     },
     "fentes-arriere": {
@@ -338,7 +339,7 @@ const PROGRAMME = {
         "Le genou avant reste au-dessus du pied.",
         "Pousse sur la jambe avant pour revenir, puis change de jambe."
       ],
-      facile: "Une main au mur pour l'équilibre, amplitude réduite.",
+      facile: "Une main au mur pour l'équilibre et descendre seulement à mi-chemin.",
       difficile: "Fente bulgare : pied arrière posé sur une chaise ou un lit."
     },
     "pont-fessier": {
@@ -351,7 +352,7 @@ const PROGRAMME = {
         "Serre les fesses 1 seconde en haut, sans cambrer.",
         "Redescends lentement."
       ],
-      facile: "Amplitude réduite.",
+      facile: "Monter le bassin moins haut, pause au sol entre chaque rep.",
       difficile: "Sur une seule jambe."
     },
     "chaise-mur": {
@@ -364,7 +365,7 @@ const PROGRAMME = {
         "Genoux au-dessus des chevilles.",
         "Tiens en respirant normalement."
       ],
-      facile: "Moins bas.",
+      facile: "Descendre moins bas (genoux à environ 120° au lieu de 90°).",
       difficile: "Cuisses à l'horizontale, ou un pied décollé."
     },
     "fentes-laterales": {
@@ -377,7 +378,7 @@ const PROGRAMME = {
         "Talons au sol, dos droit.",
         "Reviens au centre et change de côté."
       ],
-      facile: "Amplitude réduite, une main sur une chaise.",
+      facile: "Petite flexion seulement, une main sur une chaise pour l'équilibre.",
       difficile: "Descendre plus bas, pause de 2 s."
     },
     "mollets": {
@@ -390,7 +391,7 @@ const PROGRAMME = {
         "Tiens 1 seconde en haut.",
         "Redescends lentement."
       ],
-      facile: "Amplitude réduite.",
+      facile: "Sur les deux pieds au sol, en montant moins haut.",
       difficile: "Sur une jambe, avant du pied sur une marche (talon dans le vide)."
     },
 
@@ -405,7 +406,7 @@ const PROGRAMME = {
         "Respire calmement.",
         "Lâche avant de glisser, en reposant les pieds."
       ],
-      facile: "Garder les pieds au sol pour prendre une partie du poids.",
+      facile: "Garder les pieds au sol (ou sur un banc) pour porter une partie du poids.",
       difficile: "Suspension plus longue."
     },
     "tirages-omoplates": {
@@ -418,11 +419,11 @@ const PROGRAMME = {
         "Le corps monte de quelques centimètres.",
         "Relâche lentement."
       ],
-      facile: "Pieds au sol pour s'aider.",
+      facile: "Pieds au sol pour porter une partie du poids.",
       difficile: "Tenir 2 secondes en position haute."
     },
     "tractions-negatives": {
-      nom: "Tractions négatives", type: "reps",
+      nom: "Tractions négatives", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 3 }, cible: [3, 5], repos: [90, 120],
       niveau: "Difficile",
       etapes: [
@@ -431,7 +432,7 @@ const PROGRAMME = {
         "Contrôle jusqu'aux bras tendus.",
         "Repose les pieds, remonte, recommence."
       ],
-      facile: "Descente en 2 secondes, ou tractions australiennes à la place.",
+      facile: "Descente en 2 secondes, ou rester suspendu bras pliés quelques secondes (pieds sur un banc pour monter).",
       difficile: "Vraies tractions complètes.",
       note: "Ça fatigue beaucoup : peu de reps, beaucoup de repos."
     },
@@ -445,7 +446,7 @@ const PROGRAMME = {
         "Tire la poitrine vers la barre en serrant les omoplates.",
         "Redescends lentement."
       ],
-      facile: "Barre plus haute (corps plus vertical), genoux pliés.",
+      facile: "Barre plus haute (corps plus vertical), genoux pliés, pieds au sol.",
       difficile: "Pieds surélevés.",
       note: "Je ne sais pas si ta barre extérieure a une hauteur basse : si non, saute cet exercice."
     },
@@ -459,7 +460,7 @@ const PROGRAMME = {
         "Tiens 2 secondes, regard vers le sol.",
         "Redescends lentement."
       ],
-      facile: "Lever seulement les bras, ou seulement les jambes.",
+      facile: "Lever seulement les bras, puis seulement les jambes, en alternance.",
       difficile: "Tenir 5 secondes en haut."
     },
     "rowing-sac": {
@@ -472,7 +473,7 @@ const PROGRAMME = {
         "Tire le sac vers la hanche en serrant l'omoplate.",
         "Redescends lentement, puis change de bras."
       ],
-      facile: "Sac plus léger.",
+      facile: "Sac plus léger (quelques livres seulement).",
       difficile: "Sac plus lourd, ou pause de 2 s en haut.",
       note: "Vérifie que les bretelles du sac sont solides."
     },
@@ -486,7 +487,7 @@ const PROGRAMME = {
         "Même chose bras en T, puis en W (coudes pliés).",
         "Y + T + W = 1 rep."
       ],
-      facile: "Seulement Y et T.",
+      facile: "Seulement Y et T, sans tenir.",
       difficile: "Tenir 2 secondes chaque position."
     },
     "anges-inverses": {
@@ -499,7 +500,7 @@ const PROGRAMME = {
         "Reviens le long du corps sans toucher le sol.",
         "Mouvement lent et contrôlé."
       ],
-      facile: "Reposer les bras entre chaque rep.",
+      facile: "Reposer les bras au sol entre chaque rep.",
       difficile: "Mouvement très lent (4 s par trajet)."
     },
     "ecartement-serviette": {
@@ -512,7 +513,7 @@ const PROGRAMME = {
         "Garde les épaules basses.",
         "Tiens en respirant."
       ],
-      facile: "Tirer moins fort.",
+      facile: "Tirer à moitié de ta force.",
       difficile: "Tirer plus fort et tenir plus longtemps."
     },
 
@@ -527,11 +528,11 @@ const PROGRAMME = {
         "Descends en 2 secondes.",
         "Remonte en tendant complètement les bras."
       ],
-      facile: "Mains surélevées ou sur les genoux.",
+      facile: "Mains surélevées sur une table ou un lit stable, coudes près du corps.",
       difficile: "Pompes diamant, ou pieds surélevés."
     },
     "dips-chaise": {
-      nom: "Dips sur chaise", type: "reps",
+      nom: "Dips sur chaise", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 3 }, cible: [8, 12], repos: [60, 90],
       niveau: "Moyen",
       etapes: [
@@ -540,7 +541,7 @@ const PROGRAMME = {
         "Plie les coudes vers l'arrière pour descendre, sans aller trop bas.",
         "Pousse pour remonter."
       ],
-      facile: "Pieds plus proches, moins de profondeur.",
+      facile: "Pieds proches de la chaise, genoux pliés, descendre seulement de quelques centimètres.",
       difficile: "Jambes tendues.",
       note: "Ça peut gêner l'avant des épaules : reste sur une petite amplitude, arrête si ça pince."
     },
@@ -554,7 +555,7 @@ const PROGRAMME = {
         "Descends lentement en 2-3 secondes.",
         "Change de bras après la série."
       ],
-      facile: "Sac plus léger.",
+      facile: "Sac plus léger, ou les deux mains sur le sac.",
       difficile: "Sac plus lourd, ou à deux mains à la barre : tractions paumes vers toi.",
       note: "Sans haltères, les biceps sont difficiles à charger : la barre (tractions supination) sera plus efficace plus tard."
     },
@@ -568,11 +569,11 @@ const PROGRAMME = {
         "Tire vers le haut le plus fort possible, sans bouger.",
         "Tiens en respirant (ne bloque pas la respiration)."
       ],
-      facile: "Tirer à 50 % de ta force.",
+      facile: "Tirer à moitié de ta force.",
       difficile: "Changer d'angle (coudes à 45°, puis 120°)."
     },
     "pompes-sphinx": {
-      nom: "Pompes sphinx (triceps)", type: "reps",
+      nom: "Pompes sphinx (triceps)", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 2 }, cible: [6, 10], repos: [60, 75],
       niveau: "Difficile",
       etapes: [
@@ -581,11 +582,11 @@ const PROGRAMME = {
         "Redescends sur les avant-bras en contrôlant.",
         "Corps gainé tout le long."
       ],
-      facile: "Contre un mur ou sur les genoux.",
+      facile: "Debout face au mur : avant-bras contre le mur, pousser pour tendre les bras.",
       difficile: "Mains un peu plus en avant."
     },
     "pompes-doigts": {
-      nom: "Pompes inclinées bout des doigts", type: "reps",
+      nom: "Pompes inclinées bout des doigts", type: "reps", versionDepart: "facile",
       series: { debut: 2, plein: 2 }, cible: [5, 10], repos: [60, 90],
       niveau: "Moyen — le gripper ne travaille pas l'appui au sol",
       etapes: [
@@ -594,7 +595,7 @@ const PROGRAMME = {
         "Fais des pompes inclinées lentes.",
         "Arrête si les doigts s'écrasent à plat."
       ],
-      facile: "Contre le mur.",
+      facile: "Debout contre le mur, bout des doigts sur le mur.",
       difficile: "Plus bas (chaise), puis au sol sur les genoux.",
       note: "À faire de temps en temps, sans forcer : les doigts sont fragiles."
     },

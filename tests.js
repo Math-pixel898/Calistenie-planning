@@ -26,7 +26,7 @@ function seanceFictive(idExo, jour, { series = null, resultat = null, toutesLesS
     id: "test" + jour + Math.random(), date: new Date(DEBUT.getTime() + jour * UN_JOUR).toISOString(),
     seance: "test", exo: idExo,
     resultat: resultat || (series ? resultatDepuisSeries(series, p.cible, p.series) : "dur"),
-    series, chargeKg: p.chargeKg, cible: p.cible.slice(), seriesPrevues: p.series, douleur: []
+    series, chargeKg: p.chargeKg, cible: p.cible.slice(), seriesPrevues: p.series, version: p.version, douleur: []
   };
   donnees.journal.push(e);
   return e;
@@ -131,6 +131,21 @@ const baisse = l => l.a.sens === "baisser";
     "grip-normale", [{ jour: 0, series: "toutes" }, { jour: 14, series: "toutes" }, { jour: 17, series: "toutes" }, { jour: 21, series: "toutes" }]);
   verifier(!monte(l[1]) && !monte(l[2]), "5 bis — pas de montée avec seulement 2 ou 3 séances au top");
   verifier(monte(l[3]), "5 bis — montée à la 4e séance au top (plus de 2 semaines)");
+}
+
+/* ---------- 5 ter. Version facile ---------- */
+{
+  const l = scenario("5 ter. Version facile (pompes diamant)",
+    "L'exercice commence en version facile (reprise). Au top 2 semaines : l'app propose la version normale. Si c'est trop dur en normale : retour à la version facile avant de baisser les reps.",
+    "pompes-diamant", [
+      { jour: 0, series: "toutes" }, { jour: 4, series: "toutes" }, { jour: 7, series: "toutes" }, { jour: 11, series: "toutes" },
+      { jour: 14, series: "toutes" },
+      { jour: 18, series: [5, 4, 4] }
+    ]);
+  verifier(l[0].e.version === "facile", "5 ter — la séance est notée en version facile");
+  verifier(l.slice(0, 4).every(x => !monte(x)), "5 ter — pas de changement avant 2 semaines");
+  verifier(monte(l[4]) && l[4].a.changement.version === "normale", "5 ter — proposition : passer à la version normale (même fourchette)");
+  verifier(baisse(l[5]) && l[5].a.changement.version === "facile", "5 ter — trop dur en normale : retour à la version facile d'abord");
 }
 
 /* ---------- 6. Gripper au maximum ---------- */
