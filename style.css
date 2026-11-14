@@ -240,3 +240,8 @@ details.carte > summary::after { content: " ▾"; color: var(--texte-doux); }
   padding: 10px 16px; border-radius: 99px; font-size: 0.9rem;
   max-width: calc(100% - 32px); text-align: center;
 }
+
+/* Gripper : niveau de résistance bien visible */
+.carte.resistance .etiquette { font-size: 0.75rem; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 0.03em; }
+.niveau-resistance { font-size: 1.4rem; font-weight: 800; margin: 2px 0 4px; }
+.carte.resistance .note { margin: 10px 0 0; }

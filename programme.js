@@ -59,6 +59,16 @@ const PROGRAMME = {
     joursAuTopAvantMonter: 14,   // rester au moins 2 semaines au top avant de monter (2-3 sem.)
     plusPetitCranKg: 1,          // ⚠️ à vérifier sur TON gripper (peut-être 0,5 kg)
     chargeMaxKg: 12,             // maximum de ton gripper
+
+    // Gripper : nom du niveau de résistance selon le réglage en kg
+    niveauxResistance: {
+      "8":  "Basse résistance",
+      "9":  "Résistance moyenne",
+      "10": "Haute résistance",
+      "11": "Haute+ résistance"
+    },
+    avertissementKg: "Les kg sont des points de départ à ajuster selon ton ressenti, pas des valeurs prouvées.",
+    avertissementVariante: "Variante : il n'est pas démontré qu'elle soit plus efficace que la position normale.",
     pasReps: 2,                  // sans charge : on monte/baisse la fourchette de 2 reps
     pasSecondes: 5,              // ... ou de 5 secondes pour les maintiens
 
@@ -589,14 +599,15 @@ const PROGRAMME = {
       difficile: "Monter d'un cran — seulement après 2-3 semaines au top de la fourchette."
     },
     "grip-inversee": {
-      nom: "Gripper — position inversée", type: "reps", parCote: true,
+      nom: "Gripper — position inversée", type: "reps", parCote: true, variante: true,
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
-        "Retourne le gripper dans la main.",
+        "Retourne le gripper dans la main (à l'envers par rapport à la position normale).",
+        "Place les doigts serrés sur la poignée.",
         "Ferme à fond.",
-        "Ouvre lentement.",
-        "Une main, puis l'autre."
+        "Ouvre lentement, sans lâcher d'un coup.",
+        "Fais la série avec une main, puis avec l'autre."
       ],
       facile: "Un cran plus bas.",
       difficile: "Un cran plus haut, après 2-3 semaines au top."
@@ -604,25 +615,27 @@ const PROGRAMME = {
     "grip-negatifs": {
       nom: "Gripper — négatifs (position normale)", type: "reps", parCote: true,
       series: { debut: 2, plein: 2 }, cible: [4, 5], repos: [120, 120],
-      niveau: "Haute+ (négatifs)", chargeKg: 11,
+      niveau: "Haute+ résistance", chargeKg: 11,
       etapes: [
+        "Position normale.",
         "Ferme le gripper avec les deux mains.",
-        "Lâche une main.",
-        "Ouvre lentement avec une seule main, en 4 à 5 secondes.",
-        "Une main, puis l'autre."
+        "Lâche une main : garde-le fermé avec la main d'entraînement.",
+        "Ouvre lentement avec cette seule main, en 4 à 5 secondes.",
+        "Fais la série avec une main, puis avec l'autre."
       ],
       facile: "Haute résistance (≈ 10 kg).",
       difficile: "Descente plus lente (6 s) avant d'augmenter la charge."
     },
     "grip-90": {
-      nom: "Gripper — position à 90°", type: "reps", parCote: true,
+      nom: "Gripper — position à 90°", type: "reps", parCote: true, variante: true,
       series: { debut: 2, plein: 3 }, cible: [6, 10], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
-        "Tiens le gripper tourné à 90° dans la main.",
+        "Tiens le gripper tourné à 90° par rapport à la position normale.",
+        "Place les doigts serrés sur la poignée.",
         "Ferme à fond.",
         "Ouvre lentement.",
-        "Une main, puis l'autre."
+        "Fais la série avec une main, puis avec l'autre."
       ],
       facile: "Un cran plus bas.",
       difficile: "Un cran plus haut, après 2-3 semaines au top."
@@ -634,21 +647,22 @@ const PROGRAMME = {
       etapes: [
         "Position normale.",
         "Ferme le gripper (aide-toi de l'autre main si besoin).",
-        "Tiens fermé avec la main d'entraînement seule.",
-        "Une main, puis l'autre."
+        "Tiens-le fermé avec la main d'entraînement seule, pendant le temps indiqué.",
+        "Ouvre lentement.",
+        "Fais la série avec une main, puis avec l'autre."
       ],
       facile: "Basse résistance (≈ 8 kg).",
       difficile: "Maintien plus long avant de monter de charge."
     },
     "grip-lente-inversee": {
-      nom: "Gripper — série lente inversée", type: "reps", parCote: true,
+      nom: "Gripper — série lente inversée", type: "reps", parCote: true, variante: true,
       series: { debut: 2, plein: 2 }, cible: [10, 12], repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
-        "Gripper retourné dans la main.",
+        "Gripper retourné dans la main (comme la position inversée).",
         "Ferme à fond.",
-        "Ouvre en 3 secondes.",
-        "Une main, puis l'autre."
+        "Ouvre lentement en 3 secondes.",
+        "Fais la série avec une main, puis avec l'autre."
       ],
       facile: "Un cran plus bas.",
       difficile: "Ouverture en 4 secondes."

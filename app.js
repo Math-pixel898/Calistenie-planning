@@ -103,6 +103,11 @@ function prevu(idExo) {
 }
 
 const avecCharge = exo => exo.chargeKg !== undefined;
+
+// Gripper : "Haute résistance", "Résistance moyenne"... selon le réglage en kg
+function texteResistance(chargeKg) {
+  return REGLES.niveauxResistance?.[String(chargeKg)] || "Réglage ajusté";
+}
 const unite = exo => exo.type === "temps" ? "s" : "reps";
 
 // "3 × 8-12 reps par côté"
@@ -605,7 +610,7 @@ function pageSeance(idSeance) {
     html += `<a class="carte ligne-exo ${fait ? "fait" : ""}" href="#/exo/${idSeance}/${idExo}">
         <span class="num">${fait ? "✓" : i + 1}</span>
         <span class="infos"><strong>${esc(exo.nom)}</strong><br>
-          <span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? " · ≈ " + kg(p.chargeKg) : ""} · repos ${texteRepos(exo.repos)}</span>
+          <span class="doux">${texteObjectif(idExo)}${avecCharge(exo) ? ` · <strong>${texteResistance(p.chargeKg)}</strong> ≈ ${kg(p.chargeKg)}` : ""} · repos ${texteRepos(exo.repos)}</span>
         </span>
         <span class="fleche doux">›</span>
       </a>`;
@@ -708,11 +713,19 @@ function pageExercice(idSeance, idExo, juste) {
       <div class="case"><div class="etiquette">Séries</div><div class="valeur">${p.series}</div></div>
       <div class="case"><div class="etiquette">${u}</div><div class="valeur">${p.cible[0]}-${p.cible[1]}</div></div>
       <div class="case"><div class="etiquette">Repos</div><div class="valeur">${texteRepos(exo.repos)}</div></div>
-      <div class="case"><div class="etiquette">${avecCharge(exo) ? "Charge" : "Côtés"}</div>
+      <div class="case"><div class="etiquette">${avecCharge(exo) ? "Réglage" : "Côtés"}</div>
         <div class="valeur">${avecCharge(exo) ? "≈ " + kg(p.chargeKg) : (exo.parCote ? "Chacun" : "—")}</div></div>
     </div>`;
+  if (avecCharge(exo)) {
+    html += `<div class="carte resistance">
+        <div class="etiquette">Résistance</div>
+        <div class="niveau-resistance">${texteResistance(p.chargeKg)}</div>
+        <div class="doux">≈ ${kg(p.chargeKg)} · ${esc(REGLES.avertissementKg)}</div>
+        ${exo.variante ? `<p class="note">${esc(REGLES.avertissementVariante)}</p>` : ""}
+      </div>`;
+  }
 
-  html += `<div class="carte"><h3>Niveau</h3><div>${esc(exo.niveau)}</div>
+  html += `<div class="carte">${avecCharge(exo) ? "<h3>À savoir</h3>" : `<h3>Niveau</h3><div>${esc(exo.niveau)}</div>`}
       ${exo.parCote ? `<div class="doux">À faire ${avecCharge(exo) ? "avec chaque main" : "de chaque côté"}.</div>` : ""}
       ${enPhaseDebut() && exo.series.debut !== exo.series.plein
         ? `<div class="doux">Semaines 1-${REGLES.semainesPhaseDebut} : ${exo.series.debut} série(s), puis ${exo.series.plein}.</div>` : ""}
