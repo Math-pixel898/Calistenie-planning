@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Calisthénie</title>
+  <!-- Couleur de la barre du navigateur sur téléphone (clair / sombre) -->
+  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- En-tête : titre de la page en cours -->
+  <header class="entete">
+    <button id="retour" class="retour" hidden aria-label="Retour">‹</button>
+    <h1 id="titre">Planning</h1>
+  </header>
+
+  <!-- Contenu principal : app.js le remplit selon la page -->
+  <main id="contenu"></main>
+
+  <!-- Barre de navigation en bas -->
+  <nav class="nav-bas">
+    <a href="#/" data-onglet="planning">📅<span>Planning</span></a>
+    <a href="#/historique" data-onglet="historique">📈<span>Historique</span></a>
+    <a href="#/reglages" data-onglet="reglages">⚙️<span>Réglages</span></a>
+  </nav>
+
+  <!-- 1) tes données d'entraînement  2) le code de l'app -->
+  <script src="programme.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

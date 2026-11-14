@@ -1,0 +1,158 @@
+/* =====================================================================
+   STYLE.CSS — l'apparence de l'app. Mode sombre automatique selon le
+   réglage de ton téléphone.
+   ===================================================================== */
+
+/* Couleurs du mode clair */
+:root {
+  --fond: #f6f7f9;
+  --carte: #ffffff;
+  --texte: #1b1e23;
+  --texte-doux: #5d6572;
+  --bord: #e2e5ea;
+  --accent: #2563eb;
+  --accent-texte: #ffffff;
+  --vert: #15803d;
+  --orange: #c2410c;
+  --rouge: #b91c1c;
+  --surligne: #e8f0fe;
+}
+
+/* Couleurs du mode sombre */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fond: #121417;
+    --carte: #1c1f24;
+    --texte: #e8eaee;
+    --texte-doux: #9aa3b0;
+    --bord: #2c3139;
+    --accent: #5b8def;
+    --accent-texte: #0b0d10;
+    --vert: #4ade80;
+    --orange: #fb923c;
+    --rouge: #f87171;
+    --surligne: #1e2a40;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--fond);
+  color: var(--texte);
+  line-height: 1.45;
+  /* place pour la barre du bas */
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+/* ---------- En-tête ---------- */
+.entete {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; gap: 8px;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 12px;
+  background: var(--fond);
+  border-bottom: 1px solid var(--bord);
+}
+.entete h1 { font-size: 1.2rem; margin: 0; }
+.retour {
+  font-size: 1.8rem; line-height: 1; background: none; border: 0;
+  color: var(--accent); padding: 0 8px 4px 0; cursor: pointer;
+}
+
+main { padding: 16px; max-width: 640px; margin: 0 auto; }
+
+/* ---------- Cartes ---------- */
+.carte {
+  display: block;
+  background: var(--carte);
+  border: 1px solid var(--bord);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  color: inherit; text-decoration: none;
+}
+a.carte:active { transform: scale(0.99); }
+.carte h2, .carte h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.carte.aujourdhui { border: 2px solid var(--accent); background: var(--surligne); }
+.carte.repos { opacity: 0.6; }
+
+.doux { color: var(--texte-doux); font-size: 0.9rem; }
+.badge {
+  display: inline-block; font-size: 0.75rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px;
+  background: var(--accent); color: var(--accent-texte);
+  vertical-align: middle; margin-left: 6px;
+}
+.badge.gris { background: var(--bord); color: var(--texte); }
+
+/* Liste de séances dans un jour */
+.lien-seance {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-top: 1px solid var(--bord);
+  color: inherit; text-decoration: none;
+}
+.lien-seance:first-of-type { border-top: 0; }
+.lien-seance .fleche { color: var(--texte-doux); font-size: 1.3rem; }
+.ou { font-size: 0.8rem; color: var(--texte-doux); padding-left: 4px; }
+
+/* Ligne d'exercice dans une séance */
+.ligne-exo { display: flex; gap: 12px; align-items: center; }
+.ligne-exo .num {
+  flex: 0 0 32px; height: 32px; border-radius: 50%;
+  background: var(--surligne); color: var(--accent);
+  display: grid; place-items: center; font-weight: 700;
+}
+.ligne-exo .infos { flex: 1; }
+
+/* Fiche d'exercice : chiffres clés */
+.grille {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;
+}
+.case {
+  background: var(--carte); border: 1px solid var(--bord); border-radius: 12px;
+  padding: 10px 12px;
+}
+.case .etiquette { font-size: 0.75rem; color: var(--texte-doux); text-transform: uppercase; letter-spacing: 0.03em; }
+.case .valeur { font-size: 1.15rem; font-weight: 700; }
+
+ol.etapes { padding-left: 20px; margin: 0; }
+ol.etapes li { margin-bottom: 6px; }
+
+.note {
+  border-left: 4px solid var(--orange);
+  padding: 8px 12px; margin: 0 0 12px;
+  background: var(--carte); border-radius: 0 10px 10px 0;
+}
+
+/* ---------- Boutons et champs ---------- */
+.bouton {
+  display: block; width: 100%;
+  font-size: 1rem; font-weight: 600;
+  padding: 14px; border-radius: 12px; border: 0;
+  background: var(--accent); color: var(--accent-texte);
+  cursor: pointer; text-align: center; text-decoration: none;
+  margin-bottom: 10px;
+}
+.bouton.secondaire { background: var(--carte); color: var(--texte); border: 1px solid var(--bord); }
+input, select, textarea {
+  font: inherit; color: var(--texte); background: var(--carte);
+  border: 1px solid var(--bord); border-radius: 10px; padding: 10px 12px; width: 100%;
+}
+label { display: block; font-weight: 600; margin: 10px 0 4px; }
+
+/* ---------- Barre du bas ---------- */
+.nav-bas {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; justify-content: space-around;
+  background: var(--carte); border-top: 1px solid var(--bord);
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+}
+.nav-bas a {
+  display: flex; flex-direction: column; align-items: center;
+  font-size: 1.3rem; text-decoration: none; color: var(--texte-doux);
+  padding: 4px 16px; border-radius: 10px;
+}
+.nav-bas a span { font-size: 0.72rem; }
+.nav-bas a.actif { color: var(--accent); background: var(--surligne); }
