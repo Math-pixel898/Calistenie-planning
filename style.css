@@ -280,3 +280,5 @@ body.avec-minuteur { padding-bottom: calc(200px + env(safe-area-inset-bottom)); 
 input.a-preciser, select:invalid { border: 2px dashed var(--orange); }
 .erreur { color: var(--rouge); font-weight: 600; margin: 6px 0; }
 .bouton:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.carte.rappel { border-left: 5px solid var(--orange); }

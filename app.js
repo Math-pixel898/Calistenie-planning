@@ -36,7 +36,9 @@ function donneesVides() {
     ajustements: {},            // charges / fourchettes modifiées : { idExo: { chargeKg, cible } }
     historiqueAjustements: [],  // trace de chaque changement accepté
     propositionsTraitees: {},   // { idEntrée: "acceptee" | "ignoree" }
-    douleurs: []                // douleurs signalées et leur suivi
+    douleurs: [],               // douleurs signalées et leur suivi
+    derniereSauvegarde: null,   // date du dernier export (fichier de sauvegarde)
+    rappelSauvegardeMasque: null // jour où tu as appuyé sur « Plus tard »
   };
 }
 
@@ -760,7 +762,7 @@ function pagePlanning() {
     ? `Phase de reprise : séries réduites jusqu'à la fin de la semaine ${REGLES.semainesPhaseDebut}.`
     : "Phase complète : nombre de séries normal.";
 
-  let html = cartesDouleur();
+  let html = cartesDouleur() + carteRappelSauvegarde();
 
   const props = propositionsEnAttente();
   if (props.length) {
@@ -794,7 +796,7 @@ function pagePlanning() {
 
   html += `<div class="carte"><h3>Rappels</h3><ul class="doux">
       ${REGLES.rappels.map(r => `<li>${esc(r)}</li>`).join("")}</ul></div>`;
-  return { titre: "Planning", html, apres: () => { brancherPropositions(); brancherDouleurs(); } };
+  return { titre: "Planning", html, apres: () => { brancherPropositions(); brancherDouleurs(); brancherRappelSauvegarde(); } };
 }
 
 // ----- Séance : liste des exercices + saisie vocale -----
@@ -1250,7 +1252,8 @@ function pageReglages() {
 
     <div class="carte">
       <h3>💾 Sauvegarde</h3>
-      <p class="doux">${donnees.journal.length} exercice(s) enregistré(s).</p>
+      <p>Dernière sauvegarde : <strong>${texteDerniereSauvegarde()}</strong></p>
+      <p class="doux">${donnees.journal.length} exercice(s) enregistré(s). Le fichier arrive dans le dossier Téléchargements du téléphone.</p>
       <button class="bouton" id="exporter">Exporter mes données (fichier)</button>
       <label class="bouton secondaire" for="importer">Importer une sauvegarde</label>
       <input type="file" id="importer" accept="application/json,.json" hidden>
@@ -1291,14 +1294,7 @@ function brancherReglages() {
     sauverDonnees(); afficher();
   };
 
-  $("#exporter").onclick = () => {
-    const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `calisthenie-sauvegarde-${aujourdhuiISO()}.json`;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  };
+  $("#exporter").onclick = () => { exporter(); afficher({ garderDefilement: true }); };
 
   $("#importer").onchange = async e => {
     const fichier = e.target.files[0];
@@ -1323,6 +1319,59 @@ function brancherReglages() {
     if (!confirm("Effacer TOUTES tes données ? Exporte une sauvegarde avant si tu veux les garder.")) return;
     if (!confirm("Vraiment sûr ? C'est définitif.")) return;
     donnees = donneesVides(); sauverDonnees(); toast("Données effacées"); afficher();
+  };
+}
+
+// Télécharge un fichier de sauvegarde et note la date
+function exporter() {
+  donnees.derniereSauvegarde = new Date().toISOString();
+  sauverDonnees();
+  const blob = new Blob([JSON.stringify(donnees, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `calisthenie-sauvegarde-${aujourdhuiISO()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  toast("Sauvegarde téléchargée (dossier Téléchargements)");
+}
+
+// Nombre de jours depuis la dernière sauvegarde (null = jamais)
+function joursDepuisSauvegarde() {
+  if (!donnees.derniereSauvegarde) return null;
+  return Math.floor((Date.now() - new Date(donnees.derniereSauvegarde)) / UN_JOUR);
+}
+
+function texteDerniereSauvegarde() {
+  const j = joursDepuisSauvegarde();
+  if (j === null) return "jamais";
+  const quand = j === 0 ? "aujourd'hui" : j === 1 ? "hier" : `il y a ${j} jours`;
+  return `${dateCourte(donnees.derniereSauvegarde)} (${quand})`;
+}
+
+// Carte de rappel sur le planning : plus de 7 jours (ou jamais) et au moins une séance notée
+function carteRappelSauvegarde() {
+  const j = joursDepuisSauvegarde();
+  if (donnees.journal.length === 0) return "";
+  if (j !== null && j <= 7) return "";
+  if (donnees.rappelSauvegardeMasque === aujourdhuiISO()) return "";
+  return `<div class="carte rappel">
+      <h3>💾 Pense à sauvegarder</h3>
+      <p>${j === null ? "Tu n'as encore jamais exporté de sauvegarde." : `Ta dernière sauvegarde date de ${j} jours.`}
+        Tes données ne sont que dans ce téléphone : un fichier de sauvegarde te protège si le navigateur les efface.</p>
+      <div class="rangee">
+        <button class="bouton petit" id="rappel-exporter">Sauvegarder maintenant</button>
+        <button class="bouton petit secondaire" id="rappel-plus-tard">Plus tard</button>
+      </div>
+    </div>`;
+}
+
+function brancherRappelSauvegarde() {
+  const b = $("#rappel-exporter");
+  if (!b) return;
+  b.onclick = () => { exporter(); afficher({ garderDefilement: true }); };
+  $("#rappel-plus-tard").onclick = () => {
+    donnees.rappelSauvegardeMasque = aujourdhuiISO();
+    sauverDonnees(); afficher({ garderDefilement: true });
   };
 }
 
