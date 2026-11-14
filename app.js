@@ -21,7 +21,10 @@
    Tout est rangé dans la mémoire de ton navigateur (localStorage),
    sous une seule clé. Rien n'est envoyé sur internet.
    --------------------------------------------------------------------- */
-const CLE_STOCKAGE = "calisthenie-donnees";
+// En mode test (page tests.html), on travaille sur une copie à part :
+// tes vraies données ne sont jamais touchées.
+const MODE_TEST = window.MODE_TEST === true;
+const CLE_STOCKAGE = MODE_TEST ? "calisthenie-tests" : "calisthenie-donnees";
 const REGLES = PROGRAMME.regles;
 
 // Forme des données au premier lancement
@@ -265,19 +268,23 @@ function analyser(idExo) {
   // ----- Haut de la fourchette atteint -----
   if (auTop(derniere)) {
     // Depuis quand est-on au top, sans interruption, à ce niveau ?
-    let debutSerie = derniere;
+    let debutSerie = derniere, nbAuTop = 1;
     for (let i = liste.length - 2; i >= 0; i--) {
-      if (auTop(liste[i]) && memeNiveau(liste[i], derniere)) debutSerie = liste[i];
+      if (auTop(liste[i]) && memeNiveau(liste[i], derniere)) { debutSerie = liste[i]; nbAuTop++; }
       else break;
     }
     const jours = Math.floor((new Date(derniere.date) - new Date(debutSerie.date)) / UN_JOUR);
     const attente = REGLES.joursAuTopAvantMonter;
+    const minSeances = REGLES.seancesAuTopAvantMonter || 1;
 
-    if (jours < attente) {
+    if (jours < attente || nbAuTop < minSeances) {
+      const reste = [];
+      if (jours < attente) reste.push(`encore environ ${attente - jours} jour(s)`);
+      if (nbAuTop < minSeances) reste.push(`encore ${minSeances - nbAuTop} séance(s) réussie(s)`);
       return {
         entree: derniere, traitee: traitee || "info", sens: "rester",
         titre: "Haut de la fourchette atteint 👏",
-        raison: `Tu as fait ${derniere.cible[1]} ${u} sur toutes les séries. Règle du double palier : on reste au même niveau 2 à 3 semaines pour que les tendons suivent, puis on monte. Encore environ ${attente - jours} jour(s) au top avant de monter.`
+        raison: `Tu as fait ${derniere.cible[1]} ${u} sur toutes les séries. Règle du double palier : on reste au même niveau 2 à 3 semaines (et au moins ${minSeances} séances au top) pour que les tendons suivent, puis on monte. Il faut ${reste.join(" et ")} au top avant de monter.`
       };
     }
     if (avecCharge(exo)) {
@@ -292,7 +299,7 @@ function analyser(idExo) {
       return {
         entree: derniere, traitee, sens: "monter",
         titre: `Monter à ${kg(nouvelle)} ?`,
-        raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours. On monte du plus petit cran (${kg(p.chargeKg)} → ${kg(nouvelle)}). Tes reps vont baisser un peu au début, c'est normal : tu remonteras ensuite vers le haut de la fourchette.`,
+        raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On monte du plus petit cran (${kg(p.chargeKg)} → ${kg(nouvelle)}). Tes reps vont baisser un peu au début, c'est normal : tu remonteras ensuite vers le haut de la fourchette.`,
         changement: { chargeKg: nouvelle }
       };
     }
@@ -300,7 +307,7 @@ function analyser(idExo) {
     return {
       entree: derniere, traitee, sens: "monter",
       titre: `Monter à ${nouvelleCible[0]}-${nouvelleCible[1]} ${u} ?`,
-      raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours. On monte un peu la fourchette. Autre option : passer à la version plus difficile (${exo.difficile}) et garder la fourchette actuelle.`,
+      raison: `Tu atteins le haut de la fourchette (${derniere.cible[1]} ${u}) sur toutes les séries depuis ${jours} jours (${nbAuTop} séances). On monte un peu la fourchette. Autre option : passer à la version plus difficile (${exo.difficile}) et garder la fourchette actuelle.`,
       changement: { cible: nouvelleCible }
     };
   }
@@ -403,6 +410,25 @@ function nomZone(d) {
   return (z ? z.nom : d.zone) + (d.note ? ` (${d.note})` : "");
 }
 
+// La règle douleur, sans affichage (testée dans tests.html) :
+// renvoie { niveau: "surveiller" | "reduire" | "medecin", jours, raison }
+function etatDouleur(d) {
+  const heures = dureeDouleurHeures(d);
+  const jours = Math.floor(heures / 24);
+  const zone = REGLES.zonesDouleur[d.zone] || { categories: [] };
+  const cats = zone.categories.map(c => PROGRAMME.categories[c]?.nom || c).join(", ");
+  if (heures > REGLES.douleurMedecinApresJours * 24) {
+    return { niveau: "medecin", jours,
+      raison: `Ça dure depuis plus d'une semaine (${jours} j). Je te conseille de consulter un médecin ou un kiné avant de continuer les exercices qui sollicitent cette zone. Je ne peux pas évaluer une douleur.` };
+  }
+  if (heures > REGLES.douleurReduireApresHeures) {
+    return { niveau: "reduire", jours,
+      raison: `Ça dure depuis plus de 24 h. Proposition : réduis (version plus facile, moins de séries, charge plus basse) ou saute les séances qui sollicitent cette zone : ${cats}. Pourquoi : une douleur qui persiste est un signal que la récupération n'est pas finie.` };
+  }
+  return { niveau: "surveiller", jours,
+    raison: "Signalée depuis moins de 24 h : l'app te redemandera demain si elle est toujours là." };
+}
+
 // Carte d'alerte douleur. "categorie" = limiter aux douleurs qui concernent cette catégorie.
 function cartesDouleur(categorie) {
   let html = "";
@@ -410,17 +436,9 @@ function cartesDouleur(categorie) {
   for (const d of douleursActives()) {
     const zone = REGLES.zonesDouleur[d.zone] || { categories: [] };
     if (categorie && !zone.categories.includes(categorie)) continue;
-    const heures = dureeDouleurHeures(d);
-    const jours = Math.floor(heures / 24);
     const aDemander = aujourdhuiISO(new Date(d.derniereConfirmation)) !== jour;
-
-    let conseil = "";
-    if (heures > REGLES.douleurMedecinApresJours * 24) {
-      conseil = `<p><strong>Ça dure depuis plus d'une semaine (${jours} j).</strong> Je te conseille de consulter un médecin ou un kiné avant de continuer les exercices qui sollicitent cette zone. Je ne peux pas évaluer une douleur.</p>`;
-    } else if (heures > REGLES.douleurReduireApresHeures) {
-      const cats = zone.categories.map(c => PROGRAMME.categories[c]?.nom || c).join(", ");
-      conseil = `<p><strong>Ça dure depuis plus de 24 h.</strong> Proposition : réduis (version plus facile, moins de séries, charge plus basse) ou saute les séances qui sollicitent cette zone : ${esc(cats)}. Pourquoi : une douleur qui persiste est un signal que la récupération n'est pas finie.</p>`;
-    }
+    const etat = etatDouleur(d);
+    const conseil = etat.niveau === "surveiller" ? "" : `<p>${esc(etat.raison)}</p>`;
 
     html += `<div class="carte alerte">
         <h3>🩹 Douleur : ${esc(nomZone(d))}</h3>
@@ -1258,11 +1276,13 @@ function afficher({ garderDefilement = false } = {}) {
   if (!garderDefilement) window.scrollTo(0, 0);
 }
 
-window.addEventListener("hashchange", () => afficher());
-afficher();
+if (!MODE_TEST) {
+  window.addEventListener("hashchange", () => afficher());
+  afficher();
+}
 
 // Installation sur l'écran d'accueil + fonctionnement hors connexion.
 // (Ne marche qu'une fois l'app en ligne, pas en ouvrant le fichier directement.)
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+if (!MODE_TEST && "serviceWorker" in navigator && location.protocol.startsWith("http")) {
   navigator.serviceWorker.register("sw.js");
 }

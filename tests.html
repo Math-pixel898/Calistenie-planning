@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tests des règles</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body { padding-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { text-align: left; vertical-align: top; padding: 6px 4px; border-top: 1px solid var(--bord); }
+    th { color: var(--texte-doux); font-weight: 600; }
+    .ok { color: var(--vert); font-weight: 700; }
+    .ko { color: var(--rouge); font-weight: 700; }
+    .defile { overflow-x: auto; }
+    td.raison { min-width: 180px; }
+  </style>
+</head>
+<body>
+  <header class="entete"><h1>Tests des règles d'adaptation</h1></header>
+  <main id="resultats">Tests en cours…</main>
+  <!-- MODE_TEST : l'app utilise une mémoire à part, tes vraies données ne sont pas touchées -->
+  <script>window.MODE_TEST = true;</script>
+  <script src="programme.js"></script>
+  <script src="app.js"></script>
+  <script src="tests.js"></script>
+</body>
+</html>

@@ -57,6 +57,7 @@ const PROGRAMME = {
   regles: {
     semainesPhaseDebut: 2,       // semaines 1-2 = séries "debut", ensuite "plein"
     joursAuTopAvantMonter: 14,   // rester au moins 2 semaines au top avant de monter (2-3 sem.)
+    seancesAuTopAvantMonter: 4,  // ... ET au moins 4 séances au top (sécurité si tu as sauté des séances)
     plusPetitCranKg: 1,          // ⚠️ à vérifier sur TON gripper (peut-être 0,5 kg)
     chargeMaxKg: 12,             // maximum de ton gripper
 
