@@ -117,9 +117,9 @@ a.carte:active { transform: scale(0.985); }
   border: 1.5px solid var(--accent);
   background: linear-gradient(180deg, var(--accent-doux), transparent 70%), var(--carte);
 }
-.carte.repos { background: transparent; box-shadow: none; border-style: dashed; }
-.carte.repos h3 { color: var(--texte-doux); }
-.carte.passe:not(.aujourdhui) { opacity: 0.72; }
+/* Jours de repos et jours passés : même fond que les autres cartes, seul le titre est plus discret */
+.carte.repos { border-style: dashed; box-shadow: none; }
+.carte.repos h3, .carte.passe:not(.aujourdhui) h3 { color: var(--texte-doux); }
 
 .doux { color: var(--texte-doux); font-size: 0.9rem; }
 .centre { text-align: center; }
