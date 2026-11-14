@@ -35,6 +35,7 @@ function donneesVides() {
     journal: [],                // chaque exercice fait = une "entrée"
     ajustements: {},            // objectifs / charges modifiés : { idExo: { objectif, chargeKg, version } }
     historiqueAjustements: [],  // trace de chaque changement accepté
+    remplacements: {},          // { exercice de base: variante plus dure qui le remplace dans les séances }
     propositionsTraitees: {},   // { idEntrée: "acceptee" | "ignoree" }
     douleurs: [],               // douleurs signalées et leur suivi
     decalages: {},              // { "lundi de la semaine": [{ cle, jourPrevu, vers }] }
@@ -114,6 +115,21 @@ function prevu(idExo) {
 
 const estFacile = idExo => prevu(idExo).version === "facile";
 
+// L'exercice réellement fait à la place d'un exercice de base (si une variante plus dure a été acceptée)
+function exerciceActuel(idExo) {
+  let x = idExo, n = 0;
+  while (donnees.remplacements?.[x] && PROGRAMME.exercices[donnees.remplacements[x]] && n++ < 10) x = donnees.remplacements[x];
+  return x;
+}
+
+// La liste des exercices d'une séance, variantes comprises
+function exercicesDe(idSeance) {
+  return (PROGRAMME.seances[idSeance]?.exercices || []).map(exerciceActuel).filter(id => PROGRAMME.exercices[id]);
+}
+
+// L'exercice plus facile que celui-ci a remplacé (pour pouvoir revenir en arrière)
+const exercicePrecedent = idExo => Object.keys(donnees.remplacements || {}).find(k => donnees.remplacements[k] === idExo) || null;
+
 const avecCharge = exo => exo.chargeKg !== undefined;
 
 // Gripper : "Haute résistance", "Résistance moyenne"... selon le réglage en kg
@@ -154,9 +170,7 @@ function dureeExercice(idExo) {
 }
 
 function dureeSeance(idSeance) {
-  const s = PROGRAMME.seances[idSeance];
-  return Math.round(s.exercices.filter(id => PROGRAMME.exercices[id])
-    .reduce((somme, id) => somme + dureeExercice(id), 0) / 60);
+  return Math.round(exercicesDe(idSeance).reduce((somme, id) => somme + dureeExercice(id), 0) / 60);
 }
 
 // Protège un texte avant de l'insérer dans la page
@@ -263,7 +277,8 @@ function analyser(idExo) {
   const base = { entree: derniere };
 
   // Si un ajustement a déjà été fait depuis cette séance, on ne repropose rien
-  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, objectif: p.objectif, version: p.version });
+  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, objectif: p.objectif, version: p.version })
+    || !!donnees.remplacements?.[idExo]; // déjà remplacé par une variante plus dure
   const traitee = donnees.propositionsTraitees[derniere.id] || (dejaAjuste ? "acceptee" : null);
 
   // ----- Trop dur : proposer de baisser un peu -----
@@ -337,7 +352,34 @@ function analyser(idExo) {
 
     // Cas général : 2 séances réussies d'affilée -> +1 rep (ou +5 s)
     const minReussies = REGLES.seancesReussiesAvantAugmenter || 2;
-    const nouvel = avecCharge(exo) && exo.max !== undefined ? Math.min(exo.max, p.objectif + pas) : p.objectif + pas;
+
+    // Plafond atteint : on n'ajoute plus de reps. L'app propose une variante plus dure
+    // (ou d'alourdir le sac) toutes les 2 séances réussies ; si tu ignores, tu restes ici.
+    if (exo.plafond !== undefined && p.objectif >= exo.plafond) {
+      const suite = exo.suite ? PROGRAMME.exercices[exo.suite] : null;
+      const moment = nb >= minReussies && nb % minReussies === 0;
+      const plafondTexte = `Tu fais ${obj} ${u} sur toutes les séries : c'est le plafond de cet exercice, on n'ajoute plus de ${exo.type === "temps" ? "secondes" : "reps"}.`;
+      if (suite && moment) {
+        return { ...base, traitee, sens: "monter",
+          titre: `Passer à « ${suite.nom} » ?`,
+          raison: `${plafondTexte} Pour continuer à progresser, l'app te propose une variante plus dure : « ${suite.nom} », en commençant à ${suite.objectif} ${unite(suite)}. Si tu ne te sens pas prêt, appuie sur « Ignorer » : tu continues ici à ${obj} ${u}, et l'app te le reproposera dans ${minReussies} séances réussies.`,
+          changement: { remplacement: exo.suite } };
+      }
+      if (exo.alourdir && moment) {
+        return { ...base, traitee, sens: "monter",
+          titre: "Alourdir le sac ?",
+          raison: `${plafondTexte} ${exo.alourdir} Si tu acceptes, l'objectif repart à ${depart} ${u} avec le sac plus lourd. Sinon, appuie sur « Ignorer » et garde ${obj} ${u}.`,
+          changement: { objectif: depart } };
+      }
+      return { ...base, traitee: traitee || "info", sens: "rester",
+        titre: "Plafond atteint 💪",
+        raison: suite || exo.alourdir
+          ? `${plafondTexte} Encore ${minReussies - (nb % minReussies)} séance(s) réussie(s) et l'app te proposera ${suite ? `de passer à « ${suite.nom} »` : "d'alourdir le sac"}.`
+          : `${plafondTexte} ${exo.conseilPlafond || "Garde ce niveau."}` };
+    }
+
+    let nouvel = avecCharge(exo) && exo.max !== undefined ? Math.min(exo.max, p.objectif + pas) : p.objectif + pas;
+    if (exo.plafond !== undefined) nouvel = Math.min(exo.plafond, nouvel);
     if (nb < minReussies) {
       return { ...base, traitee: traitee || "info", sens: "rester",
         titre: "Objectif réussi 👏",
@@ -359,7 +401,12 @@ function accepterProposition(idExo) {
   const a = analyser(idExo);
   if (!a || !a.changement) return;
   const avant = prevu(idExo);
-  donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], a.changement);
+  if (a.changement.remplacement) {
+    donnees.remplacements = donnees.remplacements || {};
+    donnees.remplacements[idExo] = a.changement.remplacement;
+  } else {
+    donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], a.changement);
+  }
   donnees.historiqueAjustements.push({
     date: new Date().toISOString(), exo: idExo,
     avant: { chargeKg: avant.chargeKg, objectif: avant.objectif, version: avant.version },
@@ -562,7 +609,7 @@ function seanceFaiteLe(idSeance, dateISO) {
   const faits = new Set(donnees.journal
     .filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO)
     .map(e => e.exo));
-  return faits.size >= Math.ceil(s.exercices.length / 2);
+  return faits.size >= Math.ceil(exercicesDe(idSeance).length / 2);
 }
 
 const elementFait = (element, lundi) => element.seances.some(id => seanceFaiteLe(id, dateDuJour(lundi, element.jour)));
@@ -975,7 +1022,7 @@ function dessinerMinuteur() {
 // ----- Séance enchaînée -----
 // Le prochain exercice de la séance pas encore fait aujourd'hui (d'abord après l'exercice en cours)
 function exerciceSuivant(idSeance, idExo) {
-  const liste = PROGRAMME.seances[idSeance].exercices.filter(id => PROGRAMME.exercices[id]);
+  const liste = exercicesDe(idSeance);
   const i = liste.indexOf(idExo);
   return liste.slice(i + 1).find(id => !faitAujourdhui(id))
     || liste.find(id => id !== idExo && !faitAujourdhui(id)) || null;
@@ -1012,7 +1059,8 @@ function lienSeance(idSeance, dateISO = aujourdhuiISO()) {
   if (!s) return `<div class="lien-seance">⚠️ Séance « ${esc(idSeance)} » introuvable dans programme.js</div>`;
   const cat = PROGRAMME.categories[s.categorie] || { emoji: "•" };
   const faits = new Set(donnees.journal.filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO).map(e => e.exo)).size;
-  const etat = faits === 0 ? "" : faits >= s.exercices.length ? " · ✅" : ` · ${faits}/${s.exercices.length}`;
+  const total = exercicesDe(idSeance).length;
+  const etat = faits === 0 ? "" : faits >= total ? " · ✅" : ` · ${faits}/${total}`;
   return `<a class="lien-seance" href="#/seance/${idSeance}">
       <span><span class="icone-cat">${cat.emoji}</span>${esc(s.nom)} <span class="doux">· ~${dureeSeance(idSeance)} min${etat}</span></span>
       <span class="fleche">›</span>
@@ -1127,7 +1175,7 @@ function brancherEchauffement(seance) {
 function pageSeance(idSeance) {
   const s = PROGRAMME.seances[idSeance];
   if (!s) return pageIntrouvable();
-  const ids = s.exercices.filter(id => PROGRAMME.exercices[id]);
+  const ids = exercicesDe(idSeance);
   const faits = ids.filter(faitAujourdhui).length;
 
   let html = cartesDouleur(s.categorie) + carteEchauffement(s);
@@ -1138,9 +1186,8 @@ function pageSeance(idSeance) {
        <p class="doux">Les exercices s'enchaînent : tu valides, une pause de ${Math.round((REGLES.reposEntreExercices || 60) / 60 * 10) / 10 === 1 ? "1 minute" : (REGLES.reposEntreExercices || 60) + " s"} démarre, puis le suivant s'ouvre tout seul.</p>`
     : `<div class="carte succes centre"><h3>Séance terminée aujourd'hui 🎉</h3></div>`;
 
-  s.exercices.forEach((idExo, i) => {
+  ids.forEach((idExo, i) => {
     const exo = PROGRAMME.exercices[idExo];
-    if (!exo) { html += `<div class="carte">⚠️ Exercice « ${esc(idExo)} » introuvable dans programme.js</div>`; return; }
     const p = prevu(idExo);
     const fait = faitAujourdhui(idExo);
     html += `<a class="carte ligne-exo ${fait ? "fait" : ""}" href="#/exo/${idSeance}/${idExo}">
@@ -1457,6 +1504,11 @@ function dessinBonhomme(spec, pose) {
     return type === "main" ? j.bras[i]?.bout : type === "pied" ? j.jambes[i]?.bout : null;
   };
   for (const a of spec.accessoires || []) {
+    if (a.t === "sacDos") {
+      const mx = (j.H[0] + j.E[0]) / 2, my = (j.H[1] + j.E[1]) / 2;
+      const dx = Math.sin(rad(pose.tronc)) * 6, dy = -Math.cos(rad(pose.tronc)) * 6; // côté du dos
+      svg += `<rect class="objet" x="-9" y="-5" width="18" height="10" rx="3" transform="translate(${(mx + dx).toFixed(1)} ${(my + dy).toFixed(1)}) rotate(${pose.tronc.toFixed(1)})"/>`;
+    }
     if (a.t === "sac") {
       const m = j.bras[a.main]?.bout;
       if (m) svg += `<line class="anse" x1="${m[0].toFixed(1)}" y1="${m[1].toFixed(1)}" x2="${m[0].toFixed(1)}" y2="${(m[1] + 3).toFixed(1)}"/>
@@ -1476,6 +1528,7 @@ function dessinDecor(spec) {
   let svg = sol === null ? "" : `<line class="sol" x1="8" y1="${sol + 2}" x2="192" y2="${sol + 2}"/>`;
   for (const a of spec.accessoires || []) {
     if (a.t === "mur") svg += `<line class="decor" x1="${a.x}" y1="14" x2="${a.x}" y2="${sol + 2}"/>`;
+    if (a.t === "poteau") svg += `<line class="decor epais" x1="${a.x}" y1="${a.y}" x2="${a.x}" y2="${sol + 2}"/>`;
     if (a.t === "barre") svg += `<line class="decor epais" x1="${a.x1}" y1="${a.y}" x2="${a.x2}" y2="${a.y}"/>`;
     if (a.t === "barreBasse") svg += `<line class="decor" x1="${a.x}" y1="${a.y}" x2="${a.x}" y2="${sol + 2}"/><circle class="decor-plein" cx="${a.x}" cy="${a.y}" r="3.5"/>`;
     if (a.t === "chaise") svg += `<polyline class="decor" points="${a.x1},${a.y - 32} ${a.x1},${a.y} ${a.x2},${a.y}"/>
@@ -1565,9 +1618,20 @@ function pageExercice(idSeance, idExo, juste) {
       ${exo.parCote ? `<div class="doux">À faire ${avecCharge(exo) ? "avec chaque main" : "de chaque côté"}.</div>` : ""}
       ${enPhaseDebut() && exo.series.debut !== exo.series.plein
         ? `<div class="doux">Semaines 1-${REGLES.semainesPhaseDebut} : ${exo.series.debut} série(s), puis ${exo.series.plein}.</div>` : ""}
+      ${exo.plafond !== undefined ? `<div class="doux">Plafond : ${exo.plafond} ${unite(exo)}${exo.suite ? ` — ensuite, l'app te proposera « ${esc(PROGRAMME.exercices[exo.suite]?.nom || exo.suite)} »` : exo.alourdir ? " — ensuite, l'app te proposera d'alourdir le sac" : ""}.</div>` : ""}
       ${exo.max !== undefined ? `<div class="doux">Les reps montent une par une jusqu'à ${exo.max}, puis l'app propose +1 kg (et on repart à ${exo.objectif}).</div>` : ""}
       ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.objectif} ${unite(exo)}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
     </div>`;
+
+  // Variante plus dure : rappel de l'exercice précédent et bouton pour y revenir
+  const precedent = exercicePrecedent(idExo);
+  if (precedent) {
+    html += `<div class="carte variante">
+        <h3>⬆️ Variante plus dure</h3>
+        <p class="doux">Elle remplace « ${esc(PROGRAMME.exercices[precedent].nom)} » dans tes séances. Si c'est trop dur pour l'instant, tu peux revenir en arrière (ton historique est gardé).</p>
+        <button class="bouton petit secondaire" data-revenir="${precedent}">↩ Revenir à « ${esc(PROGRAMME.exercices[precedent].nom)} »</button>
+      </div>`;
+  }
 
   if (!avecCharge(exo) && exo.facile) {
     const facile = p.version === "facile";
@@ -1674,6 +1738,16 @@ function pageExercice(idSeance, idExo, juste) {
 
 function brancherSuivi(idSeance, idExo, entreeJuste) {
   const exo = PROGRAMME.exercices[idExo];
+  // Revenir à l'exercice plus facile
+  document.querySelectorAll("[data-revenir]").forEach(b => b.onclick = () => {
+    const ancien = b.dataset.revenir;
+    if (!confirm(`Revenir à « ${PROGRAMME.exercices[ancien].nom} » dans tes séances ?`)) return;
+    delete donnees.remplacements[ancien];
+    donnees.historiqueAjustements.push({ date: new Date().toISOString(), exo: ancien, avant: {}, apres: { retour: idExo }, raison: "Retour à l'exercice précédent" });
+    sauverDonnees();
+    toast("Retour à « " + PROGRAMME.exercices[ancien].nom + " »");
+    location.hash = `#/exo/${idSeance}/${ancien}`;
+  });
   // Choix Normale / Facile (retenu pour les prochaines fois)
   document.querySelectorAll("[data-version]").forEach(b => b.onclick = () => {
     donnees.ajustements[idExo] = Object.assign({}, donnees.ajustements[idExo], { version: b.dataset.version });
@@ -1789,7 +1863,9 @@ function pageHistorique(idExoChoisi) {
   const ajusts = donnees.historiqueAjustements.filter(a => a.exo === idExo);
   if (ajusts.length) {
     html += `<div class="carte"><h3>Changements acceptés</h3>${ajusts.slice().reverse().map(a =>
-      `<div class="ligne-histo">${dateCourte(a.date)} — ${a.apres.chargeKg !== undefined ? kg(a.avant.chargeKg) + " → " + kg(a.apres.chargeKg)
+      `<div class="ligne-histo">${dateCourte(a.date)} — ${a.apres.remplacement ? "remplacé par « " + esc(PROGRAMME.exercices[a.apres.remplacement]?.nom || a.apres.remplacement) + " »"
+        : a.apres.retour ? "retour à cet exercice"
+        : a.apres.chargeKg !== undefined ? kg(a.avant.chargeKg) + " → " + kg(a.apres.chargeKg)
         : a.apres.version ? "version " + (a.avant.version || "normale") + " → " + a.apres.version
         : (a.avant.objectif ?? a.avant.cible?.join("-")) + " → " + (a.apres.objectif ?? a.apres.cible?.join("-")) + " " + unite(exo)}</div>`).join("")}</div>`;
   }
@@ -1944,6 +2020,10 @@ function pageReglages() {
       <p><strong>Conseil :</strong> exporte une sauvegarde chaque semaine et garde le fichier (Drive, mail à toi-même…). Pour la récupérer : « Importer une sauvegarde ».</p>
     </div>
 
+    ${Object.keys(donnees.remplacements || {}).length ? `<div class="carte"><h3>Variantes plus dures en cours</h3>${Object.entries(donnees.remplacements).map(([base, v]) =>
+      `<div class="ligne-histo">${esc(PROGRAMME.exercices[base]?.nom || base)} → <strong>${esc(PROGRAMME.exercices[v]?.nom || v)}</strong>
+        <button class="lien" data-annuler-variante="${base}">revenir</button></div>`).join("")}</div>` : ""}
+
     ${ajusts.length ? `<div class="carte"><h3>Ajustements en cours</h3>${ajusts.map(([id, a]) => {
       const x = PROGRAMME.exercices[id];
       return `<div class="ligne-histo">${esc(x.nom)} : ${a.objectif !== undefined ? a.objectif + " " + unite(x) : ""}${a.chargeKg !== undefined ? " " + kg(a.chargeKg) : ""}${a.version ? " version " + a.version : ""}
@@ -1980,6 +2060,11 @@ function brancherReglages() {
       alert("Ce fichier n'est pas une sauvegarde valide de l'app.");
     }
   };
+
+  document.querySelectorAll("[data-annuler-variante]").forEach(b => b.onclick = () => {
+    delete donnees.remplacements[b.dataset.annulerVariante];
+    sauverDonnees(); afficher({ garderDefilement: true });
+  });
 
   document.querySelectorAll("[data-reinit]").forEach(b => b.onclick = () => {
     delete donnees.ajustements[b.dataset.reinit];

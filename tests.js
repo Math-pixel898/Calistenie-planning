@@ -134,6 +134,44 @@ const baisse = l => l.a.sens === "baisser";
   verifier(/maximale/.test(l[4].a.titre), "6 — message « charge maximale atteinte »");
 }
 
+/* ---------- 8. Plafond -> variante plus dure ---------- */
+{
+  const l = scenario("8. Squat : plafond puis variante plus dure",
+    "Plafond du squat : 25. Au plafond, l'app propose la fente bulgare toutes les 2 séances réussies. Ici on refuse (Ignorer) : on reste au squat, puis elle le repropose.",
+    "squat", [0, 3, 7, 10, 14, 17].map(j => ({ jour: j })),
+    { accepter: false, preparer: () => { donnees.ajustements["squat"] = { objectif: 25 }; } });
+  verifier(l[0].a.sens === "rester" && /Plafond/.test(l[0].a.titre), "8 — 1re séance au plafond : on n'ajoute plus de reps");
+  verifier(l[1].a.changement?.remplacement === "fente-bulgare", "8 — 2e séance au plafond : proposition de la fente bulgare");
+  verifier(!l[2].a.changement && l[3].a.changement?.remplacement === "fente-bulgare", "8 — refusée : on reste au squat, reproposée 2 séances plus tard");
+  verifier(l.every(x => !x.a.changement?.objectif || x.a.changement.objectif <= 25), "8 — jamais au-dessus du plafond de 25");
+  // On accepte maintenant
+  donnees.propositionsTraitees = {};
+  accepterProposition("squat");
+  verifier(exercicesDe("jambes")[0] === "fente-bulgare", "8 — acceptée : la fente bulgare remplace le squat dans la séance Jambes");
+  verifier(prevu("fente-bulgare").objectif === 6, "8 — la variante commence à son propre objectif (6 par jambe)");
+  verifier(exercicePrecedent("fente-bulgare") === "squat", "8 — on peut revenir au squat");
+  delete donnees.remplacements["squat"];
+  verifier(exercicesDe("jambes")[0] === "squat", "8 — retour en arrière : le squat revient dans la séance");
+}
+
+/* ---------- 9. Plafond -> alourdir le sac ---------- */
+{
+  const l = scenario("9. Rowing avec sac : plafond puis sac plus lourd",
+    "Plafond : 20. L'app propose d'alourdir le sac et de repartir à 10.",
+    "rowing-sac", [{ jour: 0 }, { jour: 3 }],
+    { preparer: () => { donnees.ajustements["rowing-sac"] = { objectif: 20 }; } });
+  verifier(l[1].a.titre === "Alourdir le sac ?" && l[1].a.changement?.objectif === 10, "9 — au plafond : alourdir le sac et repartir à 10");
+}
+
+/* ---------- 10. Plafond sans variante ---------- */
+{
+  const l = scenario("10. Pompes au mur : plafond sans variante",
+    "C'est l'échauffement : au plafond, l'app conseille simplement de garder ce niveau.",
+    "pompes-mur", [0, 3, 7, 10].map(j => ({ jour: j })),
+    { preparer: () => { donnees.ajustements["pompes-mur"] = { objectif: 25 }; } });
+  verifier(l.every(x => !x.a.changement) && /échauffement/.test(l[3].a.raison), "10 — aucun changement proposé, juste un conseil");
+}
+
 /* ---------- 7. Douleur ---------- */
 {
   reinitialiser();

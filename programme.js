@@ -18,6 +18,10 @@
    - objectif   : le nombre EXACT de reps (ou de secondes si type "temps") à faire
                   à chaque série. Il augmente au fil des semaines (proposé par l'app).
    - max        : (gripper) nombre de reps à atteindre avant de proposer +1 kg
+   - plafond    : au-delà, on n'ajoute plus de reps (ou de secondes). À la place :
+       · suite         : id d'une variante plus dure que l'app propose
+       · alourdir      : texte -> l'app propose d'alourdir et de repartir à l'objectif de départ
+       · conseilPlafond: texte affiché quand il n'y a pas de variante prévue
    - parCote    : true si la cible est à faire de CHAQUE côté / CHAQUE main
    - repos      : [minimum, maximum] de repos en secondes entre deux séries
    - niveau     : la difficulté / résistance, en texte
@@ -175,7 +179,7 @@ const PROGRAMME = {
     "pompes-mur": {
       nom: "Pompes au mur (échauffement)", type: "reps",
       muscles: { principaux: ["pectoraux"], secondaires: ["epaules", "triceps"] },
-      series: { debut: 1, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 1, plein: 2 }, objectif: 15, plafond: 25, conseilPlafond: "C'est l'échauffement : on reste à 25, pas besoin de plus.", repos: [30, 45],
       niveau: "Très facile — sert à chauffer épaules et poignets",
       etapes: [
         "Debout face au mur, mains à hauteur d'épaules, un peu plus écartées qu'elles.",
@@ -189,7 +193,7 @@ const PROGRAMME = {
     "pompes-classiques": {
       nom: "Pompes classiques", type: "reps",
       muscles: { principaux: ["pectoraux", "triceps"], secondaires: ["epaules", "abdos"] },
-      series: { debut: 2, plein: 3 }, objectif: 10, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 25, suite: "pompes-pieds-sureleves", repos: [60, 90],
       niveau: "Moyen — environ la moitié de ton max (30) pour la reprise",
       etapes: [
         "Mains sous les épaules, corps gainé de la tête aux talons.",
@@ -203,7 +207,7 @@ const PROGRAMME = {
     "pompes-ecartees": {
       nom: "Pompes écartées", type: "reps",
       muscles: { principaux: ["pectoraux"], secondaires: ["epaules", "triceps"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, suite: "pompes-archer", repos: [60, 90],
       niveau: "Moyen — insiste sur les pectoraux",
       etapes: [
         "Mains nettement plus écartées que les épaules, doigts vers l'avant.",
@@ -218,7 +222,7 @@ const PROGRAMME = {
     "pompes-diamant": {
       nom: "Pompes diamant", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["triceps"], secondaires: ["pectoraux", "epaules"] },
-      series: { debut: 2, plein: 2 }, objectif: 6, repos: [60, 90],
+      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 20, conseilPlafond: "Garde 20 et descends en 3 secondes, ou mets les pieds sur une chaise si tu te sens prêt.", repos: [60, 90],
       niveau: "Difficile — insiste sur les triceps",
       etapes: [
         "Mains rapprochées sous la poitrine, pouces et index qui forment un losange.",
@@ -233,7 +237,7 @@ const PROGRAMME = {
     "chenille": {
       nom: "Chenille (inchworm) + pompe", type: "reps",
       muscles: { principaux: ["epaules", "abdos"], secondaires: ["pectoraux", "triceps", "ischios"] },
-      series: { debut: 2, plein: 2 }, objectif: 5, repos: [45, 60],
+      series: { debut: 2, plein: 2 }, objectif: 5, plafond: 12, conseilPlafond: "Garde 12 et avance les mains plus loin que la position de pompe.", repos: [45, 60],
       niveau: "Moyen — mobilité + gainage + pousser",
       etapes: [
         "Debout, penche-toi et pose les mains au sol (plie les genoux si besoin).",
@@ -247,7 +251,7 @@ const PROGRAMME = {
     "pompes-piquees": {
       nom: "Pompes piquées (prépa poirier)", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["epaules"], secondaires: ["triceps", "trapezes"] },
-      series: { debut: 2, plein: 2 }, objectif: 6, repos: [60, 90],
+      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 15, suite: "pompes-piquees-surelevees", repos: [60, 90],
       niveau: "Moyen à difficile — épaules, prépare au poirier",
       etapes: [
         "Position de pompe, puis monte les hanches : le corps forme un V à l'envers.",
@@ -263,7 +267,7 @@ const PROGRAMME = {
     "dead-bug": {
       nom: "Dead bug", type: "reps", parCote: true,
       muscles: { principaux: ["abdos"], secondaires: ["obliques"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [30, 45],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, suite: "dead-bug-tendu", repos: [30, 45],
       niveau: "Facile — apprend à gainer sans cambrer",
       etapes: [
         "Allongé sur le dos, bras tendus vers le plafond, genoux pliés à 90° en l'air.",
@@ -277,7 +281,7 @@ const PROGRAMME = {
     "planche": {
       nom: "Gainage planche", type: "temps",
       muscles: { principaux: ["abdos"], secondaires: ["obliques", "epaules", "fessiers"] },
-      series: { debut: 2, plein: 3 }, objectif: 20, repos: [30, 45],
+      series: { debut: 2, plein: 3 }, objectif: 20, plafond: 60, suite: "planche-alternee", repos: [30, 45],
       niveau: "Moyen",
       etapes: [
         "Sur les avant-bras, coudes sous les épaules.",
@@ -291,7 +295,7 @@ const PROGRAMME = {
     "planche-laterale": {
       nom: "Gainage latéral", type: "temps", parCote: true,
       muscles: { principaux: ["obliques"], secondaires: ["abdos", "epaules", "fessiers"] },
-      series: { debut: 2, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, suite: "planche-laterale-jambe", repos: [30, 45],
       niveau: "Moyen",
       etapes: [
         "Sur le côté, coude sous l'épaule.",
@@ -305,7 +309,7 @@ const PROGRAMME = {
     "releves-jambes": {
       nom: "Relevés de jambes allongé", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["abdos"], secondaires: ["quadriceps"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, suite: "releves-bassin", repos: [45, 60],
       niveau: "Moyen",
       etapes: [
         "Allongé sur le dos, mains sous les fesses ou le long du corps.",
@@ -319,7 +323,7 @@ const PROGRAMME = {
     "position-creuse": {
       nom: "Position creuse (hollow hold)", type: "temps", versionDepart: "facile",
       muscles: { principaux: ["abdos"], secondaires: ["obliques", "quadriceps"] },
-      series: { debut: 2, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, suite: "hollow-rocks", repos: [30, 45],
       niveau: "Difficile — base de la gym au sol",
       etapes: [
         "Allongé sur le dos, bas du dos plaqué au sol.",
@@ -333,7 +337,7 @@ const PROGRAMME = {
     "grimpeurs-lents": {
       nom: "Grimpeurs lents (mountain climbers)", type: "reps", parCote: true,
       muscles: { principaux: ["abdos"], secondaires: ["obliques", "epaules", "quadriceps"] },
-      series: { debut: 2, plein: 2 }, objectif: 8, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 8, plafond: 15, conseilPlafond: "Garde 15 par côté et va plus lentement, ou genou vers le coude opposé.", repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
         "Position de pompe, bras tendus.",
@@ -349,7 +353,7 @@ const PROGRAMME = {
     "squat": {
       nom: "Squat au poids du corps", type: "reps",
       muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "abdos"] },
-      series: { debut: 2, plein: 3 }, objectif: 12, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 12, plafond: 25, suite: "fente-bulgare", repos: [45, 60],
       niveau: "Facile à moyen",
       etapes: [
         "Pieds un peu plus larges que les hanches, pointes légèrement ouvertes.",
@@ -363,7 +367,7 @@ const PROGRAMME = {
     "fentes-arriere": {
       nom: "Fentes arrière alternées", type: "reps", parCote: true,
       muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "mollets"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, suite: "montees-chaise", repos: [45, 60],
       niveau: "Moyen",
       etapes: [
         "Debout, fais un grand pas en arrière.",
@@ -377,7 +381,7 @@ const PROGRAMME = {
     "pont-fessier": {
       nom: "Pont fessier", type: "reps",
       muscles: { principaux: ["fessiers"], secondaires: ["ischios", "lombaires"] },
-      series: { debut: 2, plein: 3 }, objectif: 12, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 12, plafond: 25, suite: "pont-une-jambe", repos: [45, 60],
       niveau: "Facile",
       etapes: [
         "Allongé sur le dos, genoux pliés, pieds à plat près des fesses.",
@@ -391,7 +395,7 @@ const PROGRAMME = {
     "chaise-mur": {
       nom: "Chaise contre le mur", type: "temps",
       muscles: { principaux: ["quadriceps"], secondaires: ["fessiers"] },
-      series: { debut: 2, plein: 2 }, objectif: 20, repos: [45, 60],
+      series: { debut: 2, plein: 2 }, objectif: 20, plafond: 60, suite: "chaise-mur-une-jambe", repos: [45, 60],
       niveau: "Moyen",
       etapes: [
         "Dos contre le mur, descends comme pour t'asseoir.",
@@ -405,7 +409,7 @@ const PROGRAMME = {
     "fentes-laterales": {
       nom: "Fentes latérales", type: "reps", parCote: true,
       muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios"] },
-      series: { debut: 1, plein: 2 }, objectif: 6, repos: [30, 45],
+      series: { debut: 1, plein: 2 }, objectif: 6, plafond: 15, suite: "squat-cosaque", repos: [30, 45],
       niveau: "Moyen",
       etapes: [
         "Pieds écartés largement.",
@@ -419,7 +423,7 @@ const PROGRAMME = {
     "mollets": {
       nom: "Mollets debout", type: "reps",
       muscles: { principaux: ["mollets"], secondaires: [] },
-      series: { debut: 2, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 30, suite: "mollets-une-jambe", repos: [30, 45],
       niveau: "Facile",
       etapes: [
         "Debout, une main au mur pour l'équilibre.",
@@ -435,7 +439,7 @@ const PROGRAMME = {
     "suspension-passive": {
       nom: "Suspension à la barre", type: "temps",
       muscles: { principaux: ["avantbras", "mains"], secondaires: ["dorsaux", "epaules"] },
-      series: { debut: 2, plein: 3 }, objectif: 15, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 15, plafond: 60, conseilPlafond: "Garde 60 s ; tu peux tenir en gardant les épaules engagées (tirées vers le bas).", repos: [60, 90],
       niveau: "Facile à moyen — sollicite aussi le grip",
       etapes: [
         "Attrape la barre, mains largeur d'épaules, paumes vers l'avant.",
@@ -449,7 +453,7 @@ const PROGRAMME = {
     "tirages-omoplates": {
       nom: "Tirages d'omoplates (scapula pull-ups)", type: "reps",
       muscles: { principaux: ["trapezes", "dorsaux"], secondaires: ["avantbras"] },
-      series: { debut: 2, plein: 3 }, objectif: 6, repos: [60, 75],
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, conseilPlafond: "Garde 15 et tiens 2 s en haut.", repos: [60, 75],
       niveau: "Facile à moyen",
       etapes: [
         "Suspendu, bras tendus.",
@@ -463,7 +467,7 @@ const PROGRAMME = {
     "tractions-negatives": {
       nom: "Tractions négatives", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["dorsaux", "biceps"], secondaires: ["trapezes", "avantbras", "epaules"] },
-      series: { debut: 2, plein: 3 }, objectif: 3, repos: [90, 120],
+      series: { debut: 2, plein: 3 }, objectif: 3, plafond: 8, suite: "tractions", repos: [90, 120],
       niveau: "Difficile",
       etapes: [
         "Monte en haut de la barre en sautant (ou avec un banc), menton au-dessus.",
@@ -478,7 +482,7 @@ const PROGRAMME = {
     "tractions-australiennes": {
       nom: "Tractions australiennes (barre basse)", type: "reps",
       muscles: { principaux: ["dorsaux", "trapezes"], secondaires: ["biceps", "epaules", "avantbras"] },
-      series: { debut: 2, plein: 3 }, objectif: 6, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 20, suite: "australiennes-pieds-sureleves", repos: [60, 90],
       niveau: "Moyen",
       etapes: [
         "Barre à hauteur de taille environ, allonge-toi dessous.",
@@ -493,7 +497,7 @@ const PROGRAMME = {
     "superman": {
       nom: "Superman au sol", type: "reps",
       muscles: { principaux: ["lombaires"], secondaires: ["fessiers", "trapezes"] },
-      series: { debut: 2, plein: 3 }, objectif: 10, repos: [30, 45],
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 20, suite: "nageur", repos: [30, 45],
       niveau: "Facile",
       etapes: [
         "Allongé sur le ventre, bras tendus devant.",
@@ -507,7 +511,7 @@ const PROGRAMME = {
     "rowing-sac": {
       nom: "Rowing avec sac à dos", type: "reps", parCote: true,
       muscles: { principaux: ["dorsaux", "trapezes"], secondaires: ["biceps", "epaules"] },
-      series: { debut: 2, plein: 3 }, objectif: 10, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 20, alourdir: "Ajoute des livres ou des bouteilles d'eau dans le sac.", repos: [45, 60],
       niveau: "Moyen — le poids dépend de ce que tu mets dans le sac",
       etapes: [
         "Remplis un sac à dos (livres, bouteilles d'eau).",
@@ -522,7 +526,7 @@ const PROGRAMME = {
     "ytw": {
       nom: "Y-T-W allongé", type: "reps",
       muscles: { principaux: ["trapezes", "epaules"], secondaires: ["lombaires"] },
-      series: { debut: 2, plein: 2 }, objectif: 6, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 12, conseilPlafond: "Garde 12 et tiens 2 s dans chaque position.", repos: [30, 45],
       niveau: "Facile — haut du dos et épaules",
       etapes: [
         "Allongé sur le ventre, front sur une serviette.",
@@ -536,7 +540,7 @@ const PROGRAMME = {
     "anges-inverses": {
       nom: "Anges inversés (au sol)", type: "reps",
       muscles: { principaux: ["trapezes", "epaules"], secondaires: ["lombaires"] },
-      series: { debut: 2, plein: 2 }, objectif: 8, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 8, plafond: 15, conseilPlafond: "Garde 15 et fais le mouvement en 4 s par trajet.", repos: [30, 45],
       niveau: "Facile",
       etapes: [
         "Allongé sur le ventre, bras le long du corps, décollés du sol.",
@@ -550,7 +554,7 @@ const PROGRAMME = {
     "ecartement-serviette": {
       nom: "Écartement de serviette (isométrique)", type: "temps",
       muscles: { principaux: ["trapezes", "epaules"], secondaires: [] },
-      series: { debut: 2, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, conseilPlafond: "Garde 45 s en tirant plus fort.", repos: [30, 45],
       niveau: "Facile",
       etapes: [
         "Debout, tiens une serviette tendue devant toi, bras tendus.",
@@ -566,7 +570,7 @@ const PROGRAMME = {
     "pompes-serrees": {
       nom: "Pompes serrées (triceps)", type: "reps",
       muscles: { principaux: ["triceps"], secondaires: ["pectoraux", "epaules"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, suite: "pompes-serrees-surelevees", repos: [60, 90],
       niveau: "Moyen",
       etapes: [
         "Mains largeur d'épaules (ou un peu moins), sous les épaules.",
@@ -580,7 +584,7 @@ const PROGRAMME = {
     "dips-chaise": {
       nom: "Dips sur chaise", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["triceps"], secondaires: ["epaules", "pectoraux"] },
-      series: { debut: 2, plein: 3 }, objectif: 8, repos: [60, 90],
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, suite: "dips-pieds-sureleves", repos: [60, 90],
       niveau: "Moyen",
       etapes: [
         "Chaise stable calée contre un mur. Dos à la chaise, mains sur le bord.",
@@ -595,7 +599,7 @@ const PROGRAMME = {
     "curl-sac": {
       nom: "Curl biceps avec sac à dos", type: "reps",
       muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
-      series: { debut: 2, plein: 3 }, objectif: 10, repos: [45, 60],
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 20, alourdir: "Ajoute des livres ou des bouteilles d'eau dans le sac.", repos: [45, 60],
       niveau: "Moyen — dépend du poids du sac",
       etapes: [
         "Debout, tiens le sac par la poignée du haut, bras tendu.",
@@ -610,7 +614,7 @@ const PROGRAMME = {
     "curl-serviette": {
       nom: "Curl isométrique serviette", type: "temps",
       muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
-      series: { debut: 2, plein: 2 }, objectif: 15, repos: [30, 45],
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, conseilPlafond: "Garde 45 s en tirant plus fort.", repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
         "Mets un pied sur le milieu d'une serviette, tiens les deux bouts.",
@@ -624,7 +628,7 @@ const PROGRAMME = {
     "pompes-sphinx": {
       nom: "Pompes sphinx (triceps)", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
-      series: { debut: 2, plein: 2 }, objectif: 6, repos: [60, 75],
+      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 15, suite: "extensions-triceps-table", repos: [60, 75],
       niveau: "Difficile",
       etapes: [
         "Position de planche sur les avant-bras.",
@@ -638,7 +642,7 @@ const PROGRAMME = {
     "pompes-doigts": {
       nom: "Pompes inclinées bout des doigts", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["mains", "avantbras"], secondaires: ["pectoraux", "triceps"] },
-      series: { debut: 2, plein: 2 }, objectif: 5, repos: [60, 90],
+      series: { debut: 2, plein: 2 }, objectif: 5, plafond: 12, suite: "pompes-doigts-genoux", repos: [60, 90],
       niveau: "Moyen — le gripper ne travaille pas l'appui au sol",
       etapes: [
         "Mains sur un plan de travail ou une table stable, sur le bout des doigts écartés.",
@@ -649,6 +653,386 @@ const PROGRAMME = {
       facile: "Debout contre le mur, bout des doigts sur le mur.",
       difficile: "Plus bas (chaise), puis au sol sur les genoux.",
       note: "À faire de temps en temps, sans forcer : les doigts sont fragiles."
+    },
+
+    /* ===================== VARIANTES PLUS DURES =====================
+       Proposées par l'app quand l'exercice de base atteint son plafond
+       (champ "suite" de l'exercice de base). Elles remplacent alors
+       l'exercice de base dans la séance (bouton pour revenir en arrière). */
+
+    // ----- Pousser -----
+    "pompes-pieds-sureleves": {
+      nom: "Pompes pieds surélevés", type: "reps",
+      muscles: { principaux: ["pectoraux", "epaules"], secondaires: ["triceps", "abdos"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, suite: "pompes-sac", repos: [60, 90],
+      niveau: "Difficile — plus de poids sur les bras et le haut des pectoraux",
+      etapes: [
+        "Pieds posés sur une chaise ou un lit stable, mains au sol sous les épaules.",
+        "Corps gainé, bien droit des talons à la tête.",
+        "Descends la poitrine vers le sol en 2 secondes.",
+        "Remonte en poussant, sans creuser le dos."
+      ],
+      facile: "Pieds sur un support plus bas (une marche, un gros livre).",
+      difficile: "Support plus haut, ou descente en 3-4 secondes."
+    },
+    "pompes-sac": {
+      nom: "Pompes avec sac à dos lesté", type: "reps",
+      muscles: { principaux: ["pectoraux", "triceps"], secondaires: ["epaules", "abdos"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, repos: [60, 90],
+      alourdir: "Ajoute des livres ou des bouteilles d'eau dans le sac.",
+      niveau: "Difficile — on ajoute du poids",
+      etapes: [
+        "Mets un sac à dos rempli (livres, bouteilles d'eau), bien serré sur le dos.",
+        "Position de pompe classique, mains sous les épaules.",
+        "Descends en 2 secondes, corps gainé.",
+        "Remonte en poussant fort."
+      ],
+      facile: "Sac moins rempli.",
+      difficile: "Sac plus lourd.",
+      note: "Vérifie que le sac ne glisse pas vers la tête pendant la descente."
+    },
+    "pompes-archer": {
+      nom: "Pompes archer", type: "reps", parCote: true,
+      muscles: { principaux: ["pectoraux", "triceps"], secondaires: ["epaules", "abdos"] },
+      series: { debut: 2, plein: 3 }, objectif: 4, plafond: 10, repos: [60, 90],
+      conseilPlafond: "Garde 10 par côté et ralentis la descente : c'est déjà un exercice avancé.",
+      niveau: "Très difficile — un bras travaille presque seul",
+      etapes: [
+        "Mains très écartées (bien plus que les épaules), doigts vers l'avant.",
+        "Descends vers une main en pliant ce bras ; l'autre bras reste presque tendu sur le côté.",
+        "Remonte au centre.",
+        "Alterne : une fois à gauche, une fois à droite."
+      ],
+      facile: "Mains surélevées sur une table ou un lit stable.",
+      difficile: "Descente en 3 secondes, pause en bas."
+    },
+    "pompes-piquees-surelevees": {
+      nom: "Pompes piquées pieds surélevés", type: "reps",
+      muscles: { principaux: ["epaules"], secondaires: ["triceps", "trapezes"] },
+      series: { debut: 2, plein: 3 }, objectif: 5, plafond: 12, suite: "poirier-mur", repos: [60, 90],
+      niveau: "Difficile — préparation directe au poirier",
+      etapes: [
+        "Pieds sur une chaise ou un lit stable, mains au sol.",
+        "Monte les hanches le plus haut possible : le corps forme un V à l'envers.",
+        "Plie les coudes pour amener le haut de la tête vers le sol, devant les mains.",
+        "Pousse pour remonter."
+      ],
+      facile: "Support plus bas, ou mains plus loin du support.",
+      difficile: "Mains plus proches du support (plus vertical)."
+    },
+    "poirier-mur": {
+      nom: "Poirier contre le mur", type: "temps",
+      muscles: { principaux: ["epaules"], secondaires: ["triceps", "trapezes", "abdos", "avantbras"] },
+      series: { debut: 2, plein: 3 }, objectif: 15, plafond: 60, repos: [60, 90],
+      conseilPlafond: "Garde 60 s. Pour aller plus loin : décoller un pied du mur quelques secondes, puis les deux.",
+      niveau: "Très difficile — ton objectif poirier !",
+      etapes: [
+        "Mains au sol à environ 20 cm du mur, largeur d'épaules, doigts écartés.",
+        "Monte les jambes contre le mur, une à la fois (en marchant ou d'un petit élan).",
+        "Bras tendus, gainage, regard entre les mains.",
+        "Redescends une jambe après l'autre, en contrôlant."
+      ],
+      facile: "Ventre face au mur en remontant les pieds le long du mur, seulement à mi-hauteur.",
+      difficile: "Mains plus loin du mur, ou un pied décollé.",
+      note: "Dégage l'espace autour de toi et redescends dès que les bras tremblent fort."
+    },
+
+    // ----- Abdos -----
+    "dead-bug-tendu": {
+      nom: "Dead bug jambes tendues", type: "reps", parCote: true,
+      muscles: { principaux: ["abdos"], secondaires: ["obliques"] },
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, repos: [30, 45],
+      conseilPlafond: "Garde 15 par côté et fais le mouvement très lentement (4 s pour tendre).",
+      niveau: "Moyen à difficile",
+      etapes: [
+        "Allongé sur le dos, bras tendus vers le plafond, jambes tendues vers le plafond.",
+        "Plaque le bas du dos contre le tapis.",
+        "Descends lentement un bras derrière toi et la jambe opposée tendue vers le sol.",
+        "Reviens et change de côté. Le dos ne doit pas décoller."
+      ],
+      facile: "Le dead bug classique, genoux pliés.",
+      difficile: "Plus lent, ou descendre la jambe plus près du sol."
+    },
+    "planche-alternee": {
+      nom: "Planche bras et jambe levés", type: "reps", parCote: true,
+      muscles: { principaux: ["abdos"], secondaires: ["obliques", "fessiers", "epaules", "lombaires"] },
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, repos: [30, 45],
+      conseilPlafond: "Garde 15 par côté et tiens 2 s chaque levée.",
+      niveau: "Difficile — gainage sur 2 appuis",
+      etapes: [
+        "Position de planche sur les avant-bras, corps aligné.",
+        "Lève un bras devant toi et la jambe opposée, sans tourner le bassin.",
+        "Tiens 1 seconde, repose.",
+        "Change de côté."
+      ],
+      facile: "Lever seulement un bras, ou seulement une jambe.",
+      difficile: "Tenir 2-3 secondes chaque levée."
+    },
+    "planche-laterale-jambe": {
+      nom: "Gainage latéral jambe levée", type: "temps", parCote: true,
+      muscles: { principaux: ["obliques"], secondaires: ["abdos", "fessiers", "epaules"] },
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 40, repos: [30, 45],
+      conseilPlafond: "Garde 40 s par côté : c'est déjà très solide.",
+      niveau: "Difficile",
+      etapes: [
+        "Gainage latéral sur l'avant-bras, corps aligné.",
+        "Lève la jambe du dessus, tendue, à environ 30 cm.",
+        "Garde les hanches hautes.",
+        "Tiens, puis change de côté."
+      ],
+      facile: "Gainage latéral classique, jambes l'une sur l'autre.",
+      difficile: "Lever aussi le bras du dessus vers le plafond."
+    },
+    "releves-bassin": {
+      nom: "Relevés de bassin (reverse crunch)", type: "reps",
+      muscles: { principaux: ["abdos"], secondaires: ["obliques"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, repos: [45, 60],
+      conseilPlafond: "Garde 15 et redescends en 3 secondes.",
+      niveau: "Difficile",
+      etapes: [
+        "Allongé sur le dos, bras le long du corps, genoux pliés au-dessus des hanches.",
+        "Enroule le bassin pour décoller les fesses du sol, genoux vers la poitrine.",
+        "Ne te lance pas avec les jambes : c'est le ventre qui travaille.",
+        "Redescends lentement."
+      ],
+      facile: "Relevés de jambes classiques, genoux pliés.",
+      difficile: "Jambes plus tendues, descente plus lente."
+    },
+    "hollow-rocks": {
+      nom: "Balancier en position creuse", type: "reps",
+      muscles: { principaux: ["abdos"], secondaires: ["obliques", "quadriceps"] },
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 25, repos: [45, 60],
+      conseilPlafond: "Garde 25 en gardant une forme parfaite.",
+      niveau: "Difficile",
+      etapes: [
+        "Mets-toi en position creuse : bas du dos plaqué, épaules et jambes décollées.",
+        "Sans bouger la forme du corps, bascule doucement vers l'avant puis vers l'arrière.",
+        "Comme une coque de bateau qui se balance.",
+        "Arrête dès que le bas du dos se creuse."
+      ],
+      facile: "Genoux pliés et bras vers les pieds.",
+      difficile: "Bras derrière la tête, jambes plus basses."
+    },
+
+    // ----- Jambes -----
+    "fente-bulgare": {
+      nom: "Fente bulgare", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "mollets"] },
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, suite: "squat-une-jambe-assiste", repos: [60, 75],
+      niveau: "Difficile — presque tout le poids sur une jambe",
+      etapes: [
+        "Dos à une chaise ou un lit stable, pose le dessus du pied arrière dessus.",
+        "Le pied avant est assez loin devant (un grand pas).",
+        "Descends en pliant la jambe avant, genou avant au-dessus du pied.",
+        "Pousse dans le talon avant pour remonter. Toutes les reps, puis l'autre jambe."
+      ],
+      facile: "Fentes arrière classiques, pied arrière au sol.",
+      difficile: "Descente en 3 secondes, ou sac à dos lesté.",
+      note: "Vérifie que le support ne glisse pas."
+    },
+    "squat-une-jambe-assiste": {
+      nom: "Squat sur une jambe avec appui", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "mollets", "abdos"] },
+      series: { debut: 2, plein: 3 }, objectif: 4, plafond: 12, repos: [60, 90],
+      conseilPlafond: "Garde 12 par jambe et aide-toi de moins en moins avec les mains (vers le « pistol squat »).",
+      niveau: "Très difficile",
+      etapes: [
+        "Debout sur une jambe, tiens un encadrement de porte ou un meuble solide.",
+        "L'autre jambe tendue devant toi, un peu décollée.",
+        "Descends en poussant les fesses en arrière, aussi bas que tu contrôles.",
+        "Remonte en t'aidant le moins possible des mains."
+      ],
+      facile: "Descendre seulement jusqu'à une chaise derrière toi, puis te relever sur une jambe.",
+      difficile: "Moins d'aide des mains, descente plus basse."
+    },
+    "montees-chaise": {
+      nom: "Montées sur chaise (step-up)", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios", "mollets"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, repos: [60, 75],
+      conseilPlafond: "Garde 15 par jambe et redescends en 3 secondes.",
+      niveau: "Moyen à difficile",
+      etapes: [
+        "Face à une chaise très stable (calée contre un mur) ou une marche haute.",
+        "Pose un pied entier dessus.",
+        "Monte en poussant sur cette jambe, sans te donner d'élan avec l'autre.",
+        "Redescends lentement. Toutes les reps, puis l'autre jambe."
+      ],
+      facile: "Support plus bas (une marche d'escalier).",
+      difficile: "Support plus haut, ou descente très lente.",
+      note: "La chaise doit être solide et ne pas pouvoir basculer ou glisser."
+    },
+    "pont-une-jambe": {
+      nom: "Pont fessier sur une jambe", type: "reps", parCote: true,
+      muscles: { principaux: ["fessiers"], secondaires: ["ischios", "lombaires"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, repos: [45, 60],
+      conseilPlafond: "Garde 20 par jambe et tiens 2 s en haut.",
+      niveau: "Moyen à difficile",
+      etapes: [
+        "Allongé sur le dos, un pied à plat près des fesses, l'autre jambe tendue.",
+        "Pousse dans le talon au sol pour monter le bassin.",
+        "Garde le bassin bien horizontal, serre les fesses en haut.",
+        "Redescends lentement. Toutes les reps, puis l'autre jambe."
+      ],
+      facile: "Pont fessier classique, deux pieds au sol.",
+      difficile: "Pause de 2 secondes en haut."
+    },
+    "chaise-mur-une-jambe": {
+      nom: "Chaise contre le mur sur une jambe", type: "temps", parCote: true,
+      muscles: { principaux: ["quadriceps"], secondaires: ["fessiers"] },
+      series: { debut: 2, plein: 2 }, objectif: 15, plafond: 40, repos: [45, 60],
+      conseilPlafond: "Garde 40 s par jambe.",
+      niveau: "Difficile",
+      etapes: [
+        "Mets-toi en position de chaise contre le mur.",
+        "Tends une jambe devant toi.",
+        "Tiens sur l'autre jambe, dos collé au mur.",
+        "Repose le pied, puis change de jambe."
+      ],
+      facile: "Chaise classique sur deux jambes.",
+      difficile: "Descendre un peu plus bas."
+    },
+    "squat-cosaque": {
+      nom: "Squat cosaque", type: "reps", parCote: true,
+      muscles: { principaux: ["quadriceps", "fessiers"], secondaires: ["ischios"] },
+      series: { debut: 2, plein: 3 }, objectif: 4, plafond: 12, repos: [45, 60],
+      conseilPlafond: "Garde 12 par côté et descends plus bas.",
+      niveau: "Difficile — force et souplesse",
+      etapes: [
+        "Pieds très écartés.",
+        "Descends sur une jambe le plus bas possible, l'autre reste tendue, pointe vers le haut.",
+        "Talon de la jambe pliée au sol, dos droit.",
+        "Remonte, puis descends de l'autre côté."
+      ],
+      facile: "Fentes latérales classiques, moins bas, une main sur une chaise.",
+      difficile: "Descendre jusqu'en bas, pause de 2 s."
+    },
+    "mollets-une-jambe": {
+      nom: "Mollets sur une jambe", type: "reps", parCote: true,
+      muscles: { principaux: ["mollets"], secondaires: [] },
+      series: { debut: 2, plein: 3 }, objectif: 10, plafond: 25, repos: [30, 45],
+      conseilPlafond: "Garde 25 et fais-le sur une marche, talon dans le vide.",
+      niveau: "Moyen",
+      etapes: [
+        "Debout sur une jambe, une main au mur pour l'équilibre.",
+        "Monte sur la pointe du pied le plus haut possible.",
+        "Tiens 1 seconde en haut.",
+        "Redescends lentement. Toutes les reps, puis l'autre jambe."
+      ],
+      facile: "Mollets sur deux pieds.",
+      difficile: "Sur une marche, talon dans le vide."
+    },
+
+    // ----- Dos -----
+    "tractions": {
+      nom: "Tractions", type: "reps",
+      muscles: { principaux: ["dorsaux", "biceps"], secondaires: ["trapezes", "avantbras", "epaules"] },
+      series: { debut: 2, plein: 3 }, objectif: 2, plafond: 12, repos: [90, 120],
+      conseilPlafond: "12 tractions, c'est très solide : garde ce niveau ou ralentis la descente.",
+      niveau: "Très difficile",
+      etapes: [
+        "Suspendu à la barre, mains largeur d'épaules, paumes vers l'avant.",
+        "Tire les épaules vers le bas, puis tire jusqu'à passer le menton au-dessus de la barre.",
+        "Pas d'élan avec les jambes.",
+        "Redescends en contrôlant jusqu'aux bras tendus."
+      ],
+      facile: "Tractions négatives (descente lente seulement).",
+      difficile: "Pause d'1 s en haut, descente en 3 s."
+    },
+    "australiennes-pieds-sureleves": {
+      nom: "Tractions australiennes pieds surélevés", type: "reps",
+      muscles: { principaux: ["dorsaux", "trapezes"], secondaires: ["biceps", "epaules", "avantbras"] },
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, repos: [60, 90],
+      conseilPlafond: "Garde 15 et tiens 1 s poitrine contre la barre.",
+      niveau: "Difficile — corps presque horizontal",
+      etapes: [
+        "Barre basse, talons posés sur un banc ou une marche à la même hauteur.",
+        "Corps droit et horizontal sous la barre, bras tendus.",
+        "Tire la poitrine vers la barre en serrant les omoplates.",
+        "Redescends lentement."
+      ],
+      facile: "Tractions australiennes classiques, talons au sol.",
+      difficile: "Pause d'1 s en haut.",
+      note: "Je ne sais pas si ta barre extérieure le permet : si non, garde la version précédente."
+    },
+    "nageur": {
+      nom: "Nageur au sol", type: "reps", parCote: true,
+      muscles: { principaux: ["lombaires", "trapezes"], secondaires: ["fessiers", "epaules"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, repos: [30, 45],
+      conseilPlafond: "Garde 20 par côté et ralentis le mouvement.",
+      niveau: "Moyen",
+      etapes: [
+        "Allongé sur le ventre, bras tendus devant, regard vers le sol.",
+        "Décolle un bras et la jambe opposée.",
+        "Repose, puis l'autre bras et l'autre jambe, comme en nageant.",
+        "Mouvement lent et contrôlé."
+      ],
+      facile: "Superman classique.",
+      difficile: "Garder poitrine et jambes décollées pendant toute la série."
+    },
+
+    // ----- Bras -----
+    "pompes-serrees-surelevees": {
+      nom: "Pompes serrées pieds surélevés", type: "reps",
+      muscles: { principaux: ["triceps"], secondaires: ["pectoraux", "epaules"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 20, repos: [60, 90],
+      conseilPlafond: "Garde 20 et descends en 3 secondes.",
+      niveau: "Difficile",
+      etapes: [
+        "Pieds sur une chaise ou un lit stable, mains largeur d'épaules (ou un peu moins).",
+        "Coudes qui frôlent les côtes en descendant.",
+        "Descends en 2 secondes.",
+        "Remonte en tendant complètement les bras."
+      ],
+      facile: "Pompes serrées classiques, pieds au sol.",
+      difficile: "Mains en losange (diamant), pieds surélevés."
+    },
+    "dips-pieds-sureleves": {
+      nom: "Dips pieds surélevés", type: "reps",
+      muscles: { principaux: ["triceps"], secondaires: ["epaules", "pectoraux"] },
+      series: { debut: 2, plein: 3 }, objectif: 8, plafond: 15, repos: [60, 90],
+      conseilPlafond: "Garde 15 et ralentis la descente.",
+      niveau: "Difficile",
+      etapes: [
+        "Deux chaises stables : mains sur le bord de l'une (derrière toi), talons sur l'autre (devant).",
+        "Jambes tendues.",
+        "Plie les coudes vers l'arrière pour descendre, sans aller trop bas.",
+        "Pousse pour remonter."
+      ],
+      facile: "Dips sur chaise classiques, pieds au sol.",
+      difficile: "Descente en 3 secondes.",
+      note: "Ça peut gêner l'avant des épaules : petite amplitude, arrête si ça pince."
+    },
+    "extensions-triceps-table": {
+      nom: "Extensions triceps sur table", type: "reps",
+      muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
+      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, repos: [60, 75],
+      conseilPlafond: "Garde 15 ; pour plus dur, utilise un support plus bas.",
+      niveau: "Difficile",
+      etapes: [
+        "Mains sur le bord d'une table très stable, corps incliné et gainé.",
+        "Plie seulement les coudes : la tête descend sous le niveau des mains.",
+        "Les coudes restent serrés et pointent vers le sol.",
+        "Tends les bras pour remonter."
+      ],
+      facile: "Pompes sphinx.",
+      difficile: "Support plus bas (chaise, canapé).",
+      note: "Ça peut charger les coudes : commence doucement."
+    },
+    "pompes-doigts-genoux": {
+      nom: "Pompes bout des doigts sur les genoux", type: "reps",
+      muscles: { principaux: ["mains", "avantbras"], secondaires: ["pectoraux", "triceps"] },
+      series: { debut: 2, plein: 2 }, objectif: 4, plafond: 12, repos: [60, 90],
+      conseilPlafond: "Garde 12 : les doigts se renforcent lentement, pas besoin d'aller plus loin pour l'instant.",
+      niveau: "Difficile — doigts très sollicités",
+      etapes: [
+        "À genoux, mains au sol sur le bout des doigts écartés, en « tente ».",
+        "Corps aligné des genoux à la tête.",
+        "Fais des pompes lentes.",
+        "Arrête si les doigts s'écrasent à plat."
+      ],
+      facile: "Pompes inclinées bout des doigts sur une table.",
+      difficile: "Plus lent, ou plus de reps.",
+      note: "Les doigts sont fragiles : vas-y très progressivement."
     },
 
     /* ===================== GRIP (gripper réglable, 12 kg max) =====================

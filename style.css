@@ -503,3 +503,6 @@ body.avec-barre .nav-bas { display: none; }
 .mini.vert   { background: var(--vert-doux);   border-color: color-mix(in srgb, var(--vert) 30%, transparent); }
 .mini.orange { background: var(--orange-doux); border-color: color-mix(in srgb, var(--orange) 30%, transparent); }
 .mini.rouge  { background: var(--rouge-doux);  border-color: color-mix(in srgb, var(--rouge) 30%, transparent); }
+
+/* Variante plus dure */
+.carte.variante { background: linear-gradient(135deg, var(--vert-doux), transparent 80%), var(--carte); }
