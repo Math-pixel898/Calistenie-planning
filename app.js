@@ -1552,14 +1552,13 @@ function pageExercice(idSeance, idExo, juste) {
 
   html += carteDemonstration(idExo);
 
-  html += `<div class="carte">${avecCharge(exo) ? "<h3>À savoir</h3>" : `<h3>Niveau</h3><div>${esc(exo.niveau)}</div>`}
+  // (affichée en bas de la fiche, avec les muscles)
+  const carteNiveau = `<div class="carte">${avecCharge(exo) ? "<h3>À savoir</h3>" : `<h3>Niveau</h3><div>${esc(exo.niveau)}</div>`}
       ${exo.parCote ? `<div class="doux">À faire ${avecCharge(exo) ? "avec chaque main" : "de chaque côté"}.</div>` : ""}
       ${enPhaseDebut() && exo.series.debut !== exo.series.plein
         ? `<div class="doux">Semaines 1-${REGLES.semainesPhaseDebut} : ${exo.series.debut} série(s), puis ${exo.series.plein}.</div>` : ""}
       ${donnees.ajustements[idExo] ? `<div class="doux">Ajusté par l'adaptation (programme d'origine : ${exo.cible[0]}-${exo.cible[1]}${avecCharge(exo) ? ", " + kg(exo.chargeKg) : ""}).</div>` : ""}
     </div>`;
-
-  html += carteMuscles(exo);
 
   if (!avecCharge(exo) && exo.facile) {
     const facile = p.version === "facile";
@@ -1583,6 +1582,8 @@ function pageExercice(idSeance, idExo, juste) {
     </details>`;
 
   // ----- Suivi -----
+  // "barre" = la barre d'action fixe en bas de l'écran (valider sans défiler)
+  let barre = "";
   const entreeJuste = juste ? entreesDe(idExo).slice(-1)[0] : null;
   if (entreeJuste) {
     const r = RESULTATS[entreeJuste.resultat];
@@ -1596,22 +1597,26 @@ function pageExercice(idSeance, idExo, juste) {
     const reposEnCours = minuteur.fin !== null || minuteur.restant !== null;
     html += suivant
       ? `${reposEnCours ? `<p class="doux centre">⏱ Repos en cours : l'exercice suivant s'ouvrira tout seul à la fin.</p>` : ""}
-         <a class="bouton" id="aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Exercice suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
+         <a class="bouton aller-suivant" id="aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Exercice suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
       : `<div class="carte succes centre"><h3>Séance terminée 🎉</h3><p class="doux">Tous les exercices de « ${esc(seance.nom)} » sont faits aujourd'hui.</p></div>
          <a class="bouton" href="#/">Retour au planning</a>`;
+    barre = suivant
+      ? `<a class="bouton aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
+      : `<a class="bouton" href="#/">Séance terminée 🎉 · Planning</a>`;
   } else {
     const faites = seriesValidees[cleSeries(idExo)] || 0;
-    html += `<div class="carte" id="series-en-cours">
-      <h3>Séries : ${Math.min(faites, p.series)} / ${p.series}</h3>
-      <div class="pastilles">${Array.from({ length: p.series }, (_, k) =>
-        `<span class="pastille ${k < faites ? "faite" : ""}">${k + 1}</span>`).join("")}</div>
-      ${faites < p.series
-        ? `<button class="bouton" id="valider-serie">✓ Série ${faites + 1} faite</button>
-           <p class="doux">Après chaque série, un repos de ${mmss(reposConseille(exo))} te sera proposé (repos conseillé : ${texteRepos(exo.repos)}).</p>`
-        : `<p>Toutes les séries sont faites 💪 Dis-moi comment ça s'est passé :</p>`}
-    </div>`;
+    const pastilles = `<div class="pastilles" aria-label="Séries faites : ${Math.min(faites, p.series)} sur ${p.series}">${Array.from({ length: p.series }, (_, k) =>
+        `<span class="pastille ${k < faites ? "faite" : ""}">${k + 1}</span>`).join("")}</div>`;
+    barre = faites < p.series
+      ? `<div class="barre-series">${pastilles}<button class="bouton" id="valider-serie">✓ Série ${faites + 1} faite</button></div>`
+      : `<div class="barre-resultats">
+           <button class="mini vert" data-resultat="tout">✅<span>Tout fait</span></button>
+           <button class="mini orange" data-resultat="moins">🟠<span>Moins</span></button>
+           <button class="mini rouge" data-resultat="dur">🔴<span>Trop dur</span></button>
+         </div>`;
     html += `<div class="carte" id="suivi">
       <h3>Comment ça s'est passé ?</h3>
+      <p class="doux">Valide tes séries avec le bouton en bas de l'écran (repos de ${mmss(reposConseille(exo))} lancé automatiquement entre deux séries), ou réponds directement ici.</p>
       <p class="doux">Objectif : ${p.series} × ${p.cible[1]} ${unite(exo)}${exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : ""}${avecCharge(exo) ? " à " + kg(p.chargeKg) : ""} (haut de la fourchette).</p>
 
       <fieldset class="douleur">
@@ -1649,8 +1654,11 @@ function pageExercice(idSeance, idExo, juste) {
       <a class="lien" href="#/historique/${idExo}">Voir le graphique ›</a></div>`;
   }
 
+  // Tout en bas : niveau et muscles travaillés
+  html += carteNiveau + carteMuscles(exo);
+
   return {
-    titre: exo.nom, html, retour: `#/seance/${idSeance}`,
+    titre: exo.nom, html, barre, retour: `#/seance/${idSeance}`,
     apres: () => { brancherDouleurs(); brancherPropositions(); brancherSuivi(idSeance, idExo, entreeJuste); }
   };
 }
@@ -1667,7 +1675,7 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
   if (entreeJuste) {
     // On montre directement la confirmation (et le bouton pour passer le repos)
     setTimeout(() => $("#annuler")?.closest(".carte")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
-    if ($("#aller-suivant")) $("#aller-suivant").addEventListener("click", () => fermerMinuteur());
+    document.querySelectorAll(".aller-suivant").forEach(a => a.addEventListener("click", () => fermerMinuteur()));
     $("#annuler").onclick = () => {
       fermerMinuteur();
       annulerEntree(entreeJuste.id);
@@ -1684,12 +1692,11 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     seriesValidees[cle] = (seriesValidees[cle] || 0) + 1;
     const total = prevu(idExo).series;
     if (seriesValidees[cle] < total) {
-      preparerMinuteur({ titre: `Repos avant la série ${seriesValidees[cle] + 1}`, secondes: reposConseille(exo) });
+      preparerMinuteur({ titre: `Repos avant la série ${seriesValidees[cle] + 1}`, secondes: reposConseille(exo), lancer: true });
     } else {
       fermerMinuteur();
     }
     afficher({ garderDefilement: true });
-    if (seriesValidees[cle] >= total) setTimeout(() => $("#suivi")?.scrollIntoView({ behavior: "smooth" }), 50);
   };
 
   // Afficher le champ de précision quand "Autre" est coché
@@ -2058,6 +2065,10 @@ function afficher({ garderDefilement = false } = {}) {
   $("#titre").textContent = page.titre;
   document.title = page.titre + " · Calisthénie";
   $("#contenu").innerHTML = page.html;
+  const barreAction = $("#barre-action");
+  barreAction.innerHTML = page.barre || "";
+  barreAction.hidden = !page.barre;
+  document.body.classList.toggle("avec-barre", !!page.barre);
 
   const retour = $("#retour");
   retour.hidden = !page.retour;

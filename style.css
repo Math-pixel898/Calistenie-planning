@@ -474,3 +474,32 @@ body.avec-minuteur .toast { bottom: calc(250px + env(safe-area-inset-bottom)); }
 .illustration .reperes line { stroke: var(--texte-doux); stroke-width: 2; stroke-linecap: round; }
 .illustration .reperes text { fill: var(--texte-doux); font-size: 6px; font-weight: 700; }
 .lien-video { margin-top: 10px; }
+
+/* ---------- Barre d'action d'un exercice (fixe en bas, remplace la navigation) ---------- */
+body.avec-barre .nav-bas { display: none; }
+.barre-action {
+  position: fixed; z-index: 5;
+  left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom));
+  max-width: 616px; margin: 0 auto; padding: 8px;
+  background: var(--verre);
+  -webkit-backdrop-filter: saturate(180%) blur(18px);
+  backdrop-filter: saturate(180%) blur(18px);
+  border: 1px solid var(--bord); border-radius: 22px;
+  box-shadow: var(--ombre-forte);
+}
+.barre-action .bouton { margin: 0; padding: 15px 12px; }
+.barre-series { display: flex; align-items: center; gap: 10px; }
+.barre-series .pastilles { margin: 0 0 0 4px; gap: 5px; flex-wrap: nowrap; }
+.barre-series .pastille { width: 28px; height: 28px; border-radius: 9px; font-size: 0.8rem; }
+.barre-series .bouton { flex: 1; }
+.barre-resultats { display: flex; gap: 6px; }
+.mini {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  font: inherit; font-size: 1.1rem; padding: 8px 4px; border-radius: 16px; cursor: pointer;
+  border: 1.5px solid transparent; color: var(--texte);
+}
+.mini span { font-size: 0.82rem; font-weight: 800; }
+.mini:active { transform: scale(0.97); }
+.mini.vert   { background: var(--vert-doux);   border-color: color-mix(in srgb, var(--vert) 30%, transparent); }
+.mini.orange { background: var(--orange-doux); border-color: color-mix(in srgb, var(--orange) 30%, transparent); }
+.mini.rouge  { background: var(--rouge-doux);  border-color: color-mix(in srgb, var(--rouge) 30%, transparent); }
