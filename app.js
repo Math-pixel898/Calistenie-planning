@@ -633,6 +633,39 @@ function brancherDecalages() {
   });
 }
 
+// Bilan d'une semaine : séances prévues (hors jours facultatifs) et faites
+function bilanSemaine(lundi = lundiDe()) {
+  const plan = planSemaine(lundi);
+  const elements = JOURS.flatMap(j => plan[j]);
+  const obligatoires = elements.filter(e => !e.facultatif);
+  return {
+    lundi,
+    prevues: obligatoires.length,
+    faites: obligatoires.filter(e => elementFait(e, lundi)).length,
+    facultativesFaites: elements.filter(e => e.facultatif && elementFait(e, lundi)).length,
+    parJour: JOURS.filter(j => plan[j].length).map(j => ({
+      jour: j, total: plan[j].length,
+      faites: plan[j].filter(e => elementFait(e, lundi)).length,
+      facultatif: plan[j].every(e => e.facultatif)
+    }))
+  };
+}
+
+// Carte résumé de la semaine (page Planning)
+function carteBilanSemaine() {
+  const b = bilanSemaine();
+  const pastilles = b.parJour.map(d => {
+    const etat = d.faites === d.total ? "complet" : d.faites > 0 ? "partiel" : "";
+    return `<span class="pastille-jour ${etat} ${d.facultatif ? "facultatif" : ""}">${majuscule(d.jour.slice(0, 3))}
+      <small>${d.faites === d.total ? "✅" : `${d.faites}/${d.total}`}</small></span>`;
+  }).join("");
+  return `<div class="bilan">
+      <div class="bilan-chiffre"><strong>${b.faites}</strong> séance${b.faites > 1 ? "s" : ""} sur ${b.prevues} faites cette semaine
+        ${b.facultativesFaites ? `<span class="doux">(+ ${b.facultativesFaites} facultative${b.facultativesFaites > 1 ? "s" : ""})</span>` : ""}</div>
+      <div class="pastilles-jours">${pastilles}</div>
+    </div>`;
+}
+
 // Cartes « séance ratée » en haut du planning
 function cartesRatees() {
   return seancesRatees().map((el, k) => `<div class="carte rappel">
@@ -947,7 +980,7 @@ function pagePlanning() {
     html += props.map(([id, a]) => carteAnalyse(id, a)).join("");
   }
 
-  html += `<div class="carte"><h2>Semaine ${semaineEnCours()}</h2><div class="doux">${phase}</div></div>`;
+  html += `<div class="carte"><h2>Semaine ${semaineEnCours()}</h2><div class="doux">${phase}</div>${carteBilanSemaine()}</div>`;
 
   // La semaine du lundi au dimanche, aujourd'hui encadré
   const lundi = lundiDe();
@@ -1314,13 +1347,14 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
 // ----- Historique -----
 function pageHistorique(idExoChoisi) {
   if (donnees.journal.length === 0) {
-    return { titre: "Historique", html: `<div class="carte doux">Pas encore de séance enregistrée. Fais un exercice et appuie sur un des trois boutons : il apparaîtra ici.</div>` };
+    return { titre: "Historique", html: carteRegularite() + `<div class="carte doux">Pas encore d'exercice enregistré. Fais un exercice et appuie sur un des trois boutons : il apparaîtra ici.</div>`, apres: brancherGraphiques };
   }
   const exosFaits = [...new Set(donnees.journal.map(e => e.exo))].filter(id => PROGRAMME.exercices[id]);
   const idExo = exosFaits.includes(idExoChoisi) ? idExoChoisi : donnees.journal[donnees.journal.length - 1].exo;
   const exo = PROGRAMME.exercices[idExo];
 
-  let html = `<label for="choix-exo">Évolution de l'exercice</label>
+  let html = carteRegularite();
+  html += `<label for="choix-exo">Évolution de l'exercice</label>
     <select id="choix-exo">${exosFaits.map(id =>
       `<option value="${id}" ${id === idExo ? "selected" : ""}>${esc(PROGRAMME.exercices[id].nom)}</option>`).join("")}</select>`;
 
@@ -1364,6 +1398,41 @@ function pageHistorique(idExoChoisi) {
       brancherGraphiques();
     }
   };
+}
+
+// Régularité : séances faites par semaine, depuis le début du programme (8 semaines max)
+function carteRegularite() {
+  const semaines = [];
+  let l = lundiDe();
+  const premier = lundiDe(new Date(donnees.dateDebut + "T12:00:00"));
+  while (l >= premier && semaines.length < 8) { semaines.unshift(bilanSemaine(l)); l = decalerDate(l, -7); }
+  if (!semaines.length) return "";
+
+  const L = 320, H = 160, g = 28, d = 8, h = 14, bas = 24;
+  const max = Math.max(...semaines.map(s => s.faites + s.facultativesFaites), ...semaines.map(s => s.prevues), 1);
+  const y = v => H - bas - (v * (H - bas - h)) / max;
+  const pas = (L - g - d) / semaines.length;
+  const largeur = Math.min(28, pas * 0.6);
+  let svg = `<svg class="graphique" viewBox="0 0 ${L} ${H}" role="img" aria-label="Séances faites par semaine">`;
+  for (const v of [0, Math.round(max / 2), max]) {
+    svg += `<line class="grille-ligne" x1="${g}" x2="${L - d}" y1="${y(v)}" y2="${y(v)}"/>
+      <text class="axe" x="${g - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  semaines.forEach((s, i) => {
+    const total = s.faites + s.facultativesFaites;
+    const cx = g + pas * i + pas / 2;
+    const info = `Semaine du ${dateCourte(s.lundi + "T12:00:00")} : ${s.faites} / ${s.prevues} séances${s.facultativesFaites ? ` (+ ${s.facultativesFaites} facultative${s.facultativesFaites > 1 ? "s" : ""})` : ""}`;
+    svg += `<g class="point" data-info="${esc(info)}">
+      <rect class="cible-toucher" x="${cx - pas / 2}" y="${h}" width="${pas}" height="${H - bas - h}"/>
+      ${total > 0 ? `<rect class="barre" x="${cx - largeur / 2}" y="${y(total)}" width="${largeur}" height="${y(0) - y(total)}" rx="4"/>` : ""}
+      <line class="objectif" x1="${cx - largeur / 2 - 3}" x2="${cx + largeur / 2 + 3}" y1="${y(s.prevues)}" y2="${y(s.prevues)}"/>
+      <text class="axe" x="${cx}" y="${H - 8}" text-anchor="middle">${new Date(s.lundi + "T12:00:00").getDate()}/${new Date(s.lundi + "T12:00:00").getMonth() + 1}</text>
+    </g>`;
+  });
+  svg += `</svg><div class="info-point doux">Touche une semaine pour voir le détail.</div>`;
+  const moy = Math.round(100 * semaines.reduce((a, s) => a + Math.min(s.faites, s.prevues), 0) / Math.max(1, semaines.reduce((a, s) => a + s.prevues, 0)));
+  return `<div class="carte"><h3>Régularité (séances par semaine)</h3>${svg}
+      <p class="doux">Barre = séances faites · trait = séances prévues. ${semaines.length > 1 ? `Sur ces ${semaines.length} semaines : ${moy} % des séances prévues faites.` : ""}</p></div>`;
 }
 
 const moyenne = t => Math.round((t.reduce((a, b) => a + b, 0) / t.length) * 10) / 10;

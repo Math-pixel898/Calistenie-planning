@@ -291,3 +291,19 @@ input.a-preciser, select:invalid { border: 2px dashed var(--orange); }
 .form-decaler label { margin-top: 0; font-weight: 600; }
 .date-jour { font-weight: 400; font-size: 0.85rem; }
 .carte.passe { opacity: 0.8; }
+
+/* Régularité */
+.bilan { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--bord); }
+.bilan-chiffre strong { font-size: 1.3rem; }
+.pastilles-jours { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.pastille-jour {
+  display: flex; flex-direction: column; align-items: center; min-width: 48px;
+  padding: 4px 6px; border-radius: 10px; border: 1px solid var(--bord); font-size: 0.8rem; font-weight: 600;
+}
+.pastille-jour small { font-weight: 400; color: var(--texte-doux); }
+.pastille-jour.partiel { border-color: var(--orange); }
+.pastille-jour.complet { border-color: var(--vert); background: var(--carte); }
+.pastille-jour.facultatif { border-style: dashed; }
+.graphique .barre { fill: var(--accent); }
+.graphique .objectif { stroke: var(--texte); stroke-width: 2; stroke-dasharray: 3 2; }
+.graphique .point.actif .barre { fill: var(--vert); }
