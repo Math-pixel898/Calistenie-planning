@@ -39,6 +39,7 @@ function donneesVides() {
     douleurs: [],               // douleurs signalées et leur suivi
     decalages: {},              // { "lundi de la semaine": [{ cle, jourPrevu, vers }] }
     seancesSautees: {},         // { "lundi de la semaine": ["cle@jourPrevu"] } (séance ratée laissée tomber)
+    echauffements: {},          // { "2026-11-14": "fait" | "passe" }
     derniereSauvegarde: null,   // date du dernier export (fichier de sauvegarde)
     rappelSauvegardeMasque: null // jour où tu as appuyé sur « Plus tard »
   };
@@ -1019,6 +1020,56 @@ function pagePlanning() {
   return { titre: "Planning", html, apres: () => { brancherPropositions(); brancherDouleurs(); brancherRappelSauvegarde(); brancherDecalages(); } };
 }
 
+// ----- Échauffement (en haut des séances qui en ont un) -----
+let etapeEchauffement = null; // numéro du mouvement en cours (null = pas commencé)
+
+function carteEchauffement(seance) {
+  const ech = PROGRAMME.echauffements?.[seance.echauffement];
+  if (!ech) return "";
+  const etat = donnees.echauffements[aujourdhuiISO()];
+  const total = ech.mouvements.reduce((a, m) => a + m.secondes, 0);
+  if (etat && etapeEchauffement === null) {
+    return `<div class="carte echauffement replie">
+        <span>${etat === "fait" ? "✅ Échauffement fait aujourd'hui" : "⏭️ Échauffement passé"}</span>
+        <button class="lien" id="ech-commencer">${etat === "fait" ? "Refaire" : "Le faire"}</button>
+      </div>`;
+  }
+  return `<div class="carte echauffement">
+      <h3>🔥 ${esc(ech.nom)} <span class="doux">· ~${Math.ceil(total / 60)} min</span></h3>
+      <ol class="mouvements">${ech.mouvements.map((m, k) => `
+        <li class="${k === etapeEchauffement ? "en-cours" : k < (etapeEchauffement ?? 0) ? "fait" : ""}">
+          <strong>${esc(m.nom)}</strong> <span class="doux">· ${m.secondes} s</span><br>
+          <span class="doux">${esc(m.consigne)}</span></li>`).join("")}
+      </ol>
+      ${etapeEchauffement === null ? `<div class="rangee">
+          <button class="bouton petit" id="ech-commencer">▶ Commencer</button>
+          <button class="bouton petit secondaire" id="ech-passer">Passer</button>
+        </div>` : `<button class="bouton petit secondaire" id="ech-arreter">Arrêter l'échauffement</button>`}
+    </div>`;
+}
+
+function brancherEchauffement(seance) {
+  const ech = PROGRAMME.echauffements?.[seance.echauffement];
+  if (!ech) return;
+  const finir = etat => {
+    etapeEchauffement = null;
+    donnees.echauffements[aujourdhuiISO()] = etat;
+    sauverDonnees();
+    afficher({ garderDefilement: true });
+  };
+  // Lance le mouvement k ; à la fin du minuteur, on passe au suivant
+  const lancer = k => {
+    if (k >= ech.mouvements.length) { toast("Échauffement terminé 👍"); finir("fait"); return; }
+    etapeEchauffement = k;
+    const m = ech.mouvements[k];
+    preparerMinuteur({ titre: `${k + 1}/${ech.mouvements.length} · ${m.nom}`, secondes: m.secondes, lancer: true, ensuite: () => lancer(k + 1) });
+    afficher({ garderDefilement: true });
+  };
+  $("#ech-commencer") && ($("#ech-commencer").onclick = () => lancer(0));
+  $("#ech-passer") && ($("#ech-passer").onclick = () => finir("passe"));
+  $("#ech-arreter") && ($("#ech-arreter").onclick = () => { fermerMinuteur(); finir("passe"); });
+}
+
 // ----- Séance : liste des exercices + saisie vocale -----
 function pageSeance(idSeance) {
   const s = PROGRAMME.seances[idSeance];
@@ -1026,7 +1077,7 @@ function pageSeance(idSeance) {
   const ids = s.exercices.filter(id => PROGRAMME.exercices[id]);
   const faits = ids.filter(faitAujourdhui).length;
 
-  let html = cartesDouleur(s.categorie);
+  let html = cartesDouleur(s.categorie) + carteEchauffement(s);
   html += `<p class="doux">~${dureeSeance(idSeance)} min · ${ids.length} exercices · ${faits}/${ids.length} faits aujourd'hui.
     Touche un exercice pour voir comment le faire et noter ta série.</p>`;
 
@@ -1057,7 +1108,7 @@ function pageSeance(idSeance) {
       <div id="compris"></div>
     </div>`;
 
-  return { titre: s.nom, html, retour: "#/", apres: () => { brancherDouleurs(); brancherVocal(idSeance, ids); } };
+  return { titre: s.nom, html, retour: "#/", apres: () => { brancherDouleurs(); brancherEchauffement(s); brancherVocal(idSeance, ids); } };
 }
 
 function exempleDictee(ids) {

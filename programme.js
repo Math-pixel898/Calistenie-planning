@@ -91,10 +91,27 @@ const PROGRAMME = {
     ]
   },
 
+  /* ----- Échauffements -----
+     Proposés en haut d'une séance qui a la ligne  echauffement: "poignets".
+     Tu peux les passer. "secondes" = durée de chaque mouvement. */
+  echauffements: {
+    poignets: {
+      nom: "Échauffement poignets et doigts",
+      mouvements: [
+        { nom: "Cercles de poignets", secondes: 40,
+          consigne: "Bras devant toi, fais des cercles lents avec les poignets : 20 s dans un sens, 20 s dans l'autre." },
+        { nom: "Ouvrir / fermer les mains", secondes: 40,
+          consigne: "Ferme le poing doucement, puis ouvre grand la main en écartant les doigts. Rythme calme." },
+        { nom: "Appui progressif à quatre pattes", secondes: 50,
+          consigne: "À genoux, mains à plat sous les épaules, doigts vers l'avant. Avance et recule doucement le poids du corps au-dessus des mains, sans forcer." }
+      ]
+    }
+  },
+
   /* ----- Séances : une séance = une liste d'exercices, dans l'ordre ----- */
   seances: {
     "pousser": {
-      nom: "Pompes / pousser", categorie: "pousser",
+      nom: "Pompes / pousser", categorie: "pousser", echauffement: "poignets",
       exercices: ["pompes-mur", "pompes-classiques", "pompes-ecartees",
                   "pompes-diamant", "chenille", "pompes-piquees"]
     },
@@ -123,11 +140,11 @@ const PROGRAMME = {
                   "curl-serviette", "pompes-sphinx", "pompes-doigts"]
     },
     "grip-a": {
-      nom: "Grip — Séance A", categorie: "grip",
+      nom: "Grip — Séance A", categorie: "grip", echauffement: "poignets",
       exercices: ["grip-normale", "grip-inversee", "grip-negatifs"]
     },
     "grip-b": {
-      nom: "Grip — Séance B", categorie: "grip",
+      nom: "Grip — Séance B", categorie: "grip", echauffement: "poignets",
       exercices: ["grip-90", "grip-maintien", "grip-lente-inversee"]
     }
   },
