@@ -497,24 +497,41 @@ function normaliser(texte) {
 // Mots trop courants pour aider à reconnaître un exercice
 const MOTS_VIDES = ["serie", "series", "les", "des", "avec", "sur", "par", "gripper"];
 
-// Essaie de trouver l'exercice dont on parle parmi ceux de la séance
+// Les mots importants du nom d'un exercice
+function motsCles(idExo) {
+  return normaliser(PROGRAMME.exercices[idExo].nom).split(/[^a-z0-9]+/)
+    .filter(m => (m.length >= 3 || /^\d+$/.test(m)) && !MOTS_VIDES.includes(m));
+}
+
+// Cherche l'exercice dont on parle parmi ceux de la séance.
+// Renvoie { id, ambigu, candidats } :
+// - id = null si aucun exercice reconnu
+// - ambigu = true si plusieurs exercices correspondent autant (ex. juste « pompes »)
 function trouverExercice(texte, idsExos) {
-  let meilleur = null, meilleurScore = 0, meilleurTaille = 99;
-  for (const id of idsExos) {
-    const mots = normaliser(PROGRAMME.exercices[id].nom).split(/[^a-z0-9]+/)
-      .filter(m => (m.length >= 3 || /^\d+$/.test(m)) && !MOTS_VIDES.includes(m));
-    const score = mots.filter(m => new RegExp(`\\b${m}`).test(texte)).length;
-    if (score > meilleurScore || (score === meilleurScore && score > 0 && mots.length < meilleurTaille)) {
-      meilleur = id; meilleurScore = score; meilleurTaille = mots.length;
-    }
+  const scores = idsExos.map(id => {
+    const mots = motsCles(id);
+    const trouves = mots.filter(m => new RegExp(`\\b${m}`).test(texte)).length;
+    return { id, trouves, complet: trouves === mots.length && trouves > 0, taille: mots.length };
+  }).filter(x => x.trouves > 0);
+  if (!scores.length) return { id: null, ambigu: false, candidats: [] };
+
+  const max = Math.max(...scores.map(x => x.trouves));
+  const meilleurs = scores.filter(x => x.trouves === max);
+  // Un exercice dont TOUS les mots ont été dits l'emporte (ex. « position normale »)
+  const complets = meilleurs.filter(x => x.complet).sort((a, b) => a.taille - b.taille);
+  if (complets.length === 1 || (complets.length > 1 && complets[0].taille < complets[1].taille)) {
+    return { id: complets[0].id, ambigu: false, candidats: [] };
   }
-  return meilleur;
+  if (meilleurs.length === 1) return { id: meilleurs[0].id, ambigu: false, candidats: [] };
+  return { id: null, ambigu: true, candidats: meilleurs.map(x => x.id) };
 }
 
 // Transforme la phrase en { exo, series, reps, chargeKg }
 function comprendrePhrase(phrase, idsExos) {
   const t = normaliser(phrase);
-  const resultat = { texte: t, exo: trouverExercice(t, idsExos), series: null, reps: null, chargeKg: null };
+  const trouve = trouverExercice(t, idsExos);
+  const resultat = { texte: t, exo: trouve.id, ambigu: trouve.ambigu, candidats: trouve.candidats,
+                     series: null, reps: null, chargeKg: null, nombresInutilises: [] };
 
   let m = t.match(/(\d+)\s*(?:x|fois)\s*(\d+)/);              // "4 x 8" ou "4 fois 8"
   if (m) { resultat.series = +m[1]; resultat.reps = +m[2]; }
@@ -528,7 +545,45 @@ function comprendrePhrase(phrase, idsExos) {
     m = t.match(/(\d+)\s*(?:reps?|repetitions?|secondes?|sec|s)\b/);
     if (m) resultat.reps = +m[1];
   }
+  // Les nombres entendus mais non compris (ex. « 10 » sans « kilos »)
+  const restants = [resultat.series, resultat.reps, resultat.chargeKg].filter(n => n !== null);
+  if (resultat.exo) restants.push(...motsCles(resultat.exo).filter(m => /^\d+$/.test(m)).map(Number)); // ex. « 90 »
+  for (const n of (t.match(/\d+(?:\.\d+)?/g) || []).map(Number)) {
+    const i = restants.indexOf(n);
+    if (i >= 0) restants.splice(i, 1); else resultat.nombresInutilises.push(n);
+  }
   return resultat;
+}
+
+// Limites au-delà desquelles un chiffre est impossible (bloque l'enregistrement)
+const LIMITES = { series: [1, 10], reps: [1, 60], secondes: [1, 300] };
+
+// Vérifie les valeurs du formulaire de confirmation.
+// Renvoie { erreurs: [...], inhabituels: [...] }
+//  - erreurs : il manque quelque chose ou c'est impossible -> on ne peut pas enregistrer
+//  - inhabituels : possible mais loin de ce qui était prévu -> il faut cocher « je confirme »
+function verifierSaisie({ exo: idExo, series, reps, chargeKg }) {
+  const erreurs = [], inhabituels = [];
+  if (!idExo) { erreurs.push("Choisis l'exercice."); return { erreurs, inhabituels }; }
+  const exo = PROGRAMME.exercices[idExo];
+  const p = prevu(idExo);
+  const motReps = exo.type === "temps" ? "secondes" : "reps";
+  const [rMin, rMax] = exo.type === "temps" ? LIMITES.secondes : LIMITES.reps;
+
+  if (series === null || isNaN(series)) erreurs.push("Indique le nombre de séries.");
+  else if (series < LIMITES.series[0] || series > LIMITES.series[1]) erreurs.push(`${series} séries, ce n'est pas possible : corrige (entre ${LIMITES.series[0]} et ${LIMITES.series[1]}).`);
+  else if (Math.abs(series - p.series) > 1) inhabituels.push(`${series} séries alors que ${p.series} étaient prévues.`);
+
+  if (reps === null || isNaN(reps)) erreurs.push(`Indique le nombre de ${motReps} par série.`);
+  else if (reps < rMin || reps > rMax) erreurs.push(`${reps} ${motReps}, ça paraît impossible : corrige.`);
+  else if (reps > p.cible[1] * 1.5 || reps < p.cible[0] / 2) inhabituels.push(`${reps} ${motReps} alors que la fourchette est ${p.cible[0]}-${p.cible[1]}.`);
+
+  if (avecCharge(exo)) {
+    if (chargeKg === null || isNaN(chargeKg)) erreurs.push("Indique la charge en kg.");
+    else if (chargeKg <= 0 || chargeKg > REGLES.chargeMaxKg) erreurs.push(`${kg(chargeKg)}, c'est impossible avec ton gripper (maximum ${kg(REGLES.chargeMaxKg)}) : corrige.`);
+    else if (Math.abs(chargeKg - p.chargeKg) > REGLES.plusPetitCranKg) inhabituels.push(`${kg(chargeKg)} alors que ${kg(p.chargeKg)} étaient prévus.`);
+  }
+  return { erreurs, inhabituels };
 }
 
 // La reconnaissance vocale du navigateur est-elle disponible ?
@@ -798,50 +853,82 @@ function brancherVocal(idSeance, ids) {
   $("#analyser").onclick = () => {
     if (!champ.value.trim()) { toast("Rien à analyser"); return; }
     const c = comprendrePhrase(champ.value, ids);
-    const idExo = c.exo || ids[0];
-    const p = prevu(idExo);
+    const val = v => v === null ? "" : v;
+    const nomExo = id => esc(PROGRAMME.exercices[id].nom);
 
-    // Formulaire de confirmation : tout est modifiable
+    // Formulaire de confirmation : ce qui n'a pas été compris reste VIDE
     $("#compris").innerHTML = `
       <div class="confirmation">
         <h3>Voilà ce que j'ai compris — vérifie et corrige :</h3>
         <p class="doux">Phrase reçue : « ${esc(champ.value)} »</p>
-        ${c.exo ? "" : `<p class="avertissement">⚠️ Je n'ai pas reconnu l'exercice : choisis-le.</p>`}
+        ${c.ambigu ? `<p class="avertissement">⚠️ Plusieurs exercices possibles (${c.candidats.map(nomExo).join(", ")}) : choisis le bon.</p>`
+          : c.exo ? "" : `<p class="avertissement">⚠️ Je n'ai pas reconnu l'exercice : choisis-le.</p>`}
+        ${c.nombresInutilises.length ? `<p class="avertissement">⚠️ J'ai entendu ${c.nombresInutilises.join(", ")} sans savoir à quoi ça correspond : vérifie les cases.</p>` : ""}
         <label for="v-exo">Exercice</label>
-        <select id="v-exo">${ids.map(id => `<option value="${id}" ${id === idExo ? "selected" : ""}>${esc(PROGRAMME.exercices[id].nom)}</option>`).join("")}</select>
+        <select id="v-exo" required>
+          <option value="" ${c.exo ? "" : "selected"}>— choisis l'exercice —</option>
+          ${ids.map(id => `<option value="${id}" ${id === c.exo ? "selected" : ""}>${nomExo(id)}</option>`).join("")}
+        </select>
         <div class="deux-colonnes">
-          <div><label for="v-series">Séries</label><input id="v-series" type="number" inputmode="numeric" min="1" value="${c.series ?? p.series}"></div>
-          <div><label for="v-reps" id="v-reps-label">Reps par série</label><input id="v-reps" type="number" inputmode="numeric" min="0" value="${c.reps ?? p.cible[1]}"></div>
+          <div><label for="v-series">Séries</label><input id="v-series" type="number" inputmode="numeric" value="${val(c.series)}">
+            <div class="doux" id="v-series-prevu"></div></div>
+          <div><label for="v-reps" id="v-reps-label">Reps par série</label><input id="v-reps" type="number" inputmode="numeric" value="${val(c.reps)}">
+            <div class="doux" id="v-reps-prevu"></div></div>
         </div>
-        <div id="v-charge-bloc"><label for="v-charge">Charge (kg)</label><input id="v-charge" type="number" inputmode="decimal" step="0.5" min="0" value="${c.chargeKg ?? p.chargeKg ?? ""}"></div>
-        ${[c.series, c.reps].includes(null) ? `<p class="doux">Les cases que je n'ai pas comprises sont pré-remplies avec ce qui était prévu.</p>` : ""}
+        <div id="v-charge-bloc"><label for="v-charge">Charge (kg)</label>
+          <input id="v-charge" type="number" inputmode="decimal" step="0.5" value="${val(c.chargeKg)}">
+          <div class="doux" id="v-charge-prevu"></div></div>
+        <div id="v-problemes"></div>
+        <label class="case-a-cocher" id="v-confirme-bloc" hidden><input type="checkbox" id="v-confirme"> Oui, ces chiffres sont justes</label>
         <button class="bouton" id="v-ok">✔️ C'est bon, enregistrer</button>
         <button class="bouton secondaire" id="v-annuler">Annuler</button>
       </div>`;
 
-    // Le champ charge n'apparaît que pour les exercices avec charge
-    const majChamps = () => {
-      const exo = PROGRAMME.exercices[$("#v-exo").value];
-      $("#v-charge-bloc").hidden = !avecCharge(exo);
-      $("#v-reps-label").textContent = exo.type === "temps" ? "Secondes par série" : "Reps par série";
-      if (avecCharge(exo) && !$("#v-charge").value) $("#v-charge").value = prevu($("#v-exo").value).chargeKg;
+    const nombre = sel => $(sel).value.trim() === "" ? null : Number($(sel).value.replace(",", "."));
+    const lire = () => ({ exo: $("#v-exo").value || null, series: nombre("#v-series"), reps: nombre("#v-reps"), chargeKg: nombre("#v-charge") });
+
+    // À chaque modification : on revérifie et on (dé)bloque le bouton
+    const verifier = () => {
+      const saisie = lire();
+      const exo = saisie.exo ? PROGRAMME.exercices[saisie.exo] : null;
+      const p = saisie.exo ? prevu(saisie.exo) : null;
+      $("#v-charge-bloc").hidden = !(exo && avecCharge(exo));
+      $("#v-reps-label").textContent = exo?.type === "temps" ? "Secondes par série" : "Reps par série";
+      $("#v-series-prevu").textContent = p ? `prévu : ${p.series}` : "";
+      $("#v-reps-prevu").textContent = p ? `prévu : ${p.cible[0]}-${p.cible[1]}` : "";
+      $("#v-charge-prevu").textContent = p?.chargeKg !== undefined ? `prévu : ${kg(p.chargeKg)}` : "";
+      if (exo && !avecCharge(exo) && c.chargeKg !== null && !$("#v-charge-bloc").dataset.dit) {
+        $("#v-charge-bloc").dataset.dit = "1";
+        toast("J'ai entendu des kg, mais cet exercice n'a pas de charge : ignoré.");
+      }
+
+      const { erreurs, inhabituels } = verifierSaisie(saisie);
+      ["#v-series", "#v-reps", "#v-charge"].forEach(sel => $(sel).classList.toggle("a-preciser", $(sel).value.trim() === ""));
+      $("#v-problemes").innerHTML =
+        erreurs.map(e => `<p class="erreur">✋ ${esc(e)}</p>`).join("") +
+        inhabituels.map(e => `<p class="avertissement">⚠️ Inhabituel : ${esc(e)}</p>`).join("");
+      $("#v-confirme-bloc").hidden = erreurs.length > 0 || inhabituels.length === 0;
+      const bloque = erreurs.length > 0 || (inhabituels.length > 0 && !$("#v-confirme").checked);
+      $("#v-ok").disabled = bloque;
+      $("#v-ok").textContent = erreurs.length ? "Complète ou corrige pour enregistrer"
+        : bloque ? "Coche « ces chiffres sont justes »" : "✔️ C'est bon, enregistrer";
+      return !bloque;
     };
-    $("#v-exo").onchange = majChamps;
-    majChamps();
+    ["#v-exo", "#v-series", "#v-reps", "#v-charge", "#v-confirme"].forEach(sel => $(sel).addEventListener("input", verifier));
+    $("#v-exo").addEventListener("change", verifier);
+    verifier();
 
     $("#v-annuler").onclick = () => { $("#compris").innerHTML = ""; };
     $("#v-ok").onclick = () => {
-      const exoId = $("#v-exo").value;
+      if (!verifier()) return; // sécurité : jamais d'enregistrement si quelque chose cloche
+      const { exo: exoId, series: nb, reps, chargeKg } = lire();
       const exo = PROGRAMME.exercices[exoId];
-      const nb = Math.max(1, Math.min(20, parseInt($("#v-series").value, 10) || 1));
-      const reps = Math.max(0, parseInt($("#v-reps").value, 10) || 0);
-      const series = Array(nb).fill(reps);
       const pr = prevu(exoId);
+      const series = Array(nb).fill(reps);
       enregistrer({
         seance: idSeance, exo: exoId,
         resultat: resultatDepuisSeries(series, pr.cible, pr.series),
-        series,
-        chargeKg: avecCharge(exo) ? parseFloat($("#v-charge").value) || pr.chargeKg : undefined
+        series, chargeKg: avecCharge(exo) ? chargeKg : undefined
       });
       champ.value = "";
       toast("Enregistré : " + exo.nom);

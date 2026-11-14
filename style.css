@@ -36,6 +36,8 @@
 }
 
 * { box-sizing: border-box; }
+/* Un élément marqué « hidden » est toujours caché, quel que soit son style */
+[hidden] { display: none !important; }
 
 body {
   margin: 0;
@@ -273,3 +275,8 @@ details.carte > summary::after { content: " ▾"; color: var(--texte-doux); }
 .minuteur-boutons button.principal { flex: 1.6; background: var(--accent); color: var(--accent-texte); border: 0; }
 /* place pour la barre du minuteur sous le contenu */
 body.avec-minuteur { padding-bottom: calc(200px + env(safe-area-inset-bottom)); }
+
+/* Dictée : cases à préciser et messages */
+input.a-preciser, select:invalid { border: 2px dashed var(--orange); }
+.erreur { color: var(--rouge); font-weight: 600; margin: 6px 0; }
+.bouton:disabled { opacity: 0.55; cursor: not-allowed; }
