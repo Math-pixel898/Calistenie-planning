@@ -983,7 +983,7 @@ function lienSeance(idSeance, dateISO = aujourdhuiISO()) {
   const faits = new Set(donnees.journal.filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO).map(e => e.exo)).size;
   const etat = faits === 0 ? "" : faits >= s.exercices.length ? " · ✅" : ` · ${faits}/${s.exercices.length}`;
   return `<a class="lien-seance" href="#/seance/${idSeance}">
-      <span>${cat.emoji} ${esc(s.nom)} <span class="doux">· ~${dureeSeance(idSeance)} min${etat}</span></span>
+      <span><span class="icone-cat">${cat.emoji}</span>${esc(s.nom)} <span class="doux">· ~${dureeSeance(idSeance)} min${etat}</span></span>
       <span class="fleche">›</span>
     </a>`;
 }

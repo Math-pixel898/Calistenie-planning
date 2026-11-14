@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Calisthénie</title>
   <!-- Couleur de la barre du navigateur sur téléphone (clair / sombre) -->
-  <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f3f4f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0b0c0f" media="(prefers-color-scheme: dark)">
   <link rel="stylesheet" href="style.css">
   <!-- Installation sur l'écran d'accueil (PWA) -->
   <link rel="manifest" href="manifest.json">
@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Calisthénie">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
   <!-- En-tête : titre de la page en cours -->
@@ -32,9 +32,15 @@
 
   <!-- Barre de navigation en bas -->
   <nav class="nav-bas">
-    <a href="#/" data-onglet="planning">📅<span>Planning</span></a>
-    <a href="#/historique" data-onglet="historique">📈<span>Historique</span></a>
-    <a href="#/reglages" data-onglet="reglages">⚙️<span>Réglages</span></a>
+    <a href="#/" data-onglet="planning">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      <span>Planning</span></a>
+    <a href="#/historique" data-onglet="historique">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16.5v-5M12 16.5V6M17 16.5v-8"/></svg>
+      <span>Historique</span></a>
+    <a href="#/reglages" data-onglet="reglages">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></svg>
+      <span>Réglages</span></a>
   </nav>
 
   <!-- 1) tes données d'entraînement  2) le code de l'app -->
