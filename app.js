@@ -1290,6 +1290,213 @@ function carteMuscles(exo) {
     </div>`;
 }
 
+// ----- Démonstration animée (bonhomme dessiné en code, voir illustrations.js) -----
+const MEMBRES = { tronc: 32, cou: 11, tete: 7, bras: 17, avantbras: 16, cuisse: 26, tibia: 26, pied: 8 };
+const rad = d => d * Math.PI / 180;
+const versAngle = (p, angle, l) => [p[0] + l * Math.cos(rad(angle)), p[1] + l * Math.sin(rad(angle))];
+const melange = (a, b, f) => a + (b - a) * f;
+
+// Deux segments (bras + avant-bras, cuisse + tibia) qui doivent atteindre un point :
+// renvoie l'articulation du milieu (coude, genou) et le bout (main, cheville).
+function plier(debut, cible, l1, l2, sens) {
+  const dx = cible[0] - debut[0], dy = cible[1] - debut[1];
+  const d = Math.hypot(dx, dy) || 0.001;
+  const ux = dx / d, uy = dy / d;
+  if (d >= l1 + l2) { // trop loin : membre tendu dans la direction du point
+    return { milieu: [debut[0] + ux * l1, debut[1] + uy * l1], bout: [debut[0] + ux * (l1 + l2), debut[1] + uy * (l1 + l2)] };
+  }
+  const dd = Math.max(d, Math.abs(l1 - l2) + 0.01);
+  const a = (l1 * l1 - l2 * l2 + dd * dd) / (2 * dd);
+  const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+  return { milieu: [debut[0] + ux * a - sens * uy * h, debut[1] + uy * a + sens * ux * h], bout: cible };
+}
+
+// Met une pose sous une forme complète et régulière
+function normaliserPose(p) {
+  const deux = m => {
+    if (m === undefined) return [null, null];
+    if (Array.isArray(m) && typeof m[0] === "number") return [{ a: m }, { a: m }];
+    if (!Array.isArray(m)) return [m, m];
+    return [0, 1].map(i => { const x = m[i] ?? m[0]; return Array.isArray(x) ? { a: x } : x; });
+  };
+  // corps = [x cheville, y cheville, angle] : la hanche se déduit (corps tendu)
+  const hanche = p.corps ? versAngle([p.corps[0], p.corps[1]], p.corps[2], MEMBRES.cuisse + MEMBRES.tibia) : p.hanche;
+  return {
+    hanche, corps: p.corps || null, tronc: p.tronc, tete: p.tete ?? p.tronc, largeur: p.largeur || 0,
+    bras: deux(p.bras), jambes: deux(p.jambes),
+    pied: p.pied === undefined ? null : (Array.isArray(p.pied) ? p.pied : [p.pied, p.pied])
+  };
+}
+
+// Position intermédiaire entre deux poses (f de 0 à 1)
+function entrePoses(p, q, f) {
+  const membre = (m, n) => {
+    if (!m || !n) return m || n;
+    if (m.a && n.a) return { a: [melange(m.a[0], n.a[0], f), melange(m.a[1], n.a[1], f)] };
+    if (m.c && n.c) return { c: [melange(m.c[0], n.c[0], f), melange(m.c[1], n.c[1], f)], s: f < 0.5 ? m.s : n.s, tendu: m.tendu };
+    return f < 0.5 ? m : n;
+  };
+  // Corps tendu des deux côtés : on fait pivoter le corps autour des pieds (il reste droit)
+  const corps = p.corps && q.corps ? [0, 1, 2].map(i => melange(p.corps[i], q.corps[i], f)) : null;
+  const hanche = corps ? versAngle([corps[0], corps[1]], corps[2], MEMBRES.cuisse + MEMBRES.tibia)
+    : [melange(p.hanche[0], q.hanche[0], f), melange(p.hanche[1], q.hanche[1], f)];
+  return {
+    hanche, corps,
+    tronc: melange(p.tronc, q.tronc, f), tete: melange(p.tete, q.tete, f),
+    largeur: melange(p.largeur, q.largeur, f),
+    bras: [0, 1].map(i => membre(p.bras[i], q.bras[i])),
+    jambes: [0, 1].map(i => membre(p.jambes[i], q.jambes[i])),
+    pied: p.pied && q.pied ? [0, 1].map(i => melange(p.pied[i], q.pied[i], f)) : (p.pied || q.pied)
+  };
+}
+
+// Calcule la position de chaque articulation
+function articulations(pose) {
+  const H = pose.hanche, E = versAngle(H, pose.tronc, MEMBRES.tronc);
+  const px = -Math.sin(rad(pose.tronc)), py = Math.cos(rad(pose.tronc)); // perpendiculaire au tronc
+  const w = pose.largeur;
+  const epaules = [[E[0] - px * w, E[1] - py * w], [E[0] + px * w, E[1] + py * w]];
+  const hanches = [[H[0] - px * w * 0.6, H[1] - py * w * 0.6], [H[0] + px * w * 0.6, H[1] + py * w * 0.6]];
+  const membre = (depart, m, l1, l2, sensDefaut) => {
+    if (!m) return null;
+    if (m.a) { const mil = versAngle(depart, m.a[0], l1); return { milieu: mil, bout: versAngle(mil, m.a[1], l2) }; }
+    if (m.tendu) return { milieu: [(depart[0] + m.c[0]) / 2, (depart[1] + m.c[1]) / 2], bout: m.c };
+    return plier(depart, m.c, l1, l2, m.s ?? sensDefaut);
+  };
+  const bras = [0, 1].map(i => membre(epaules[i], pose.bras[i], MEMBRES.bras, MEMBRES.avantbras, 1));
+  const jambes = [0, 1].map(i => membre(hanches[i], pose.jambes[i], MEMBRES.cuisse, MEMBRES.tibia, -1));
+  const orteils = pose.pied ? [0, 1].map(i => jambes[i] && versAngle(jambes[i].bout, pose.pied[i], MEMBRES.pied)) : [null, null];
+  return { H, E, tete: versAngle(E, pose.tete, MEMBRES.cou), epaules, hanches, bras, jambes, orteils };
+}
+
+// Durée de chaque étape de l'animation
+function etapesAnimation(spec) {
+  const n = spec.poses.length;
+  const pause = spec.pause ?? 0.35;
+  return Array.from({ length: n }, (_, i) => ({ pause, duree: spec.durees?.[i] ?? spec.duree ?? 1.2 }));
+}
+
+// La pose à l'instant t (en secondes), en boucle
+function poseA(spec, t) {
+  if (!spec._poses) spec._poses = spec.poses.map(normaliserPose);
+  const poses = spec._poses;
+  if (poses.length === 1) return poses[0];
+  const etapes = etapesAnimation(spec);
+  const total = etapes.reduce((a, e) => a + e.pause + e.duree, 0);
+  let reste = t % total;
+  for (let i = 0; i < etapes.length; i++) {
+    const e = etapes[i];
+    if (reste < e.pause) return poses[i];
+    reste -= e.pause;
+    if (reste < e.duree) {
+      const f = 0.5 - Math.cos(Math.PI * reste / e.duree) / 2; // départ et arrivée en douceur
+      return entrePoses(poses[i], poses[(i + 1) % poses.length], f);
+    }
+    reste -= e.duree;
+  }
+  return poses[0];
+}
+
+const pt = p => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
+
+// Dessine le bonhomme (et les objets qu'il tient) pour une pose
+function dessinBonhomme(spec, pose) {
+  const j = articulations(pose);
+  const deFace = spec.vue === "face" || spec.vue === "dessus";
+  const ligne = (points, classe = "os") => `<polyline class="${classe}" points="${points.map(pt).join(" ")}"/>`;
+  const membre = (depart, m, classe) => m ? ligne([depart, m.milieu, m.bout], classe) : "";
+  const pied = (i, classe) => j.orteils[i] && j.jambes[i] ? ligne([j.jambes[i].bout, j.orteils[i]], classe) : "";
+  const loin = deFace ? "os" : "os loin";
+  let svg = "";
+  // Membres du côté éloigné (plus clairs, derrière)
+  svg += membre(j.hanches[1], j.jambes[1], loin) + pied(1, loin) + membre(j.epaules[1], j.bras[1], loin);
+  // Tronc (et épaules / bassin vus de face)
+  svg += ligne([j.H, j.E]);
+  if (deFace) svg += ligne([j.epaules[0], j.epaules[1]]) + ligne([j.hanches[0], j.hanches[1]]);
+  svg += `<circle class="tete" cx="${j.tete[0].toFixed(1)}" cy="${j.tete[1].toFixed(1)}" r="${MEMBRES.tete}"/>`;
+  // Membres du côté proche
+  svg += membre(j.hanches[0], j.jambes[0], "os") + pied(0, "os") + membre(j.epaules[0], j.bras[0], "os");
+  // Objets qui suivent le corps (sac, serviette)
+  const point = nom => {
+    const [type, i] = [nom.slice(0, -1), +nom.slice(-1)];
+    return type === "main" ? j.bras[i]?.bout : type === "pied" ? j.jambes[i]?.bout : null;
+  };
+  for (const a of spec.accessoires || []) {
+    if (a.t === "sac") {
+      const m = j.bras[a.main]?.bout;
+      if (m) svg += `<line class="anse" x1="${m[0].toFixed(1)}" y1="${m[1].toFixed(1)}" x2="${m[0].toFixed(1)}" y2="${(m[1] + 3).toFixed(1)}"/>
+        <rect class="objet" x="${(m[0] - 6).toFixed(1)}" y="${(m[1] + 2).toFixed(1)}" width="12" height="14" rx="3"/>`;
+    }
+    if (a.t === "serviette") {
+      const p1 = point(a.de), p2 = point(a.a);
+      if (p1 && p2) svg += `<line class="serviette" x1="${pt(p1).split(",")[0]}" y1="${pt(p1).split(",")[1]}" x2="${pt(p2).split(",")[0]}" y2="${pt(p2).split(",")[1]}"/>`;
+    }
+  }
+  return svg;
+}
+
+// Décor fixe (sol, mur, barre, chaise...)
+function dessinDecor(spec) {
+  const sol = spec.sol === undefined ? 114 : spec.sol;
+  let svg = sol === null ? "" : `<line class="sol" x1="8" y1="${sol + 2}" x2="192" y2="${sol + 2}"/>`;
+  for (const a of spec.accessoires || []) {
+    if (a.t === "mur") svg += `<line class="decor" x1="${a.x}" y1="14" x2="${a.x}" y2="${sol + 2}"/>`;
+    if (a.t === "barre") svg += `<line class="decor epais" x1="${a.x1}" y1="${a.y}" x2="${a.x2}" y2="${a.y}"/>`;
+    if (a.t === "barreBasse") svg += `<line class="decor" x1="${a.x}" y1="${a.y}" x2="${a.x}" y2="${sol + 2}"/><circle class="decor-plein" cx="${a.x}" cy="${a.y}" r="3.5"/>`;
+    if (a.t === "chaise") svg += `<polyline class="decor" points="${a.x1},${a.y - 32} ${a.x1},${a.y} ${a.x2},${a.y}"/>
+      <line class="decor" x1="${a.x1 + 2}" y1="${a.y}" x2="${a.x1 + 2}" y2="${sol + 2}"/><line class="decor" x1="${a.x2 - 2}" y1="${a.y}" x2="${a.x2 - 2}" y2="${sol + 2}"/>`;
+    if (a.t === "table" || a.t === "banc") svg += `<line class="decor epais" x1="${a.x1}" y1="${a.y}" x2="${a.x2}" y2="${a.y}"/>
+      <line class="decor" x1="${a.x1 + 4}" y1="${a.y}" x2="${a.x1 + 4}" y2="${sol + 2}"/><line class="decor" x1="${a.x2 - 4}" y1="${a.y}" x2="${a.x2 - 4}" y2="${sol + 2}"/>`;
+    if (a.t === "reperes") {
+      svg += `<g class="reperes"><rect x="158" y="4" width="38" height="40" rx="8"/>
+        <circle cx="177" cy="12" r="3"/><line x1="169" y1="19" x2="185" y2="19"/>
+        ${a.forme === "diamant" ? `<polygon points="177,24 182,29 177,34 172,29"/>` : `<circle cx="163" cy="27" r="2.6"/><circle cx="191" cy="27" r="2.6"/>`}
+        <text x="177" y="41" text-anchor="middle">mains</text></g>`;
+    }
+  }
+  return svg;
+}
+
+// La carte « Démonstration » d'une fiche
+function carteDemonstration(idExo) {
+  const spec = typeof ILLUSTRATIONS !== "undefined" ? ILLUSTRATIONS[idExo] : null;
+  const exo = PROGRAMME.exercices[idExo];
+  const recherche = spec?.recherche || exo.nom;
+  const lienVideo = `https://www.youtube.com/results?search_query=${encodeURIComponent(recherche)}`;
+  let dessin = "";
+  if (spec?.poses) {
+    const hauteur = spec.hauteur || 125;
+    const vue = spec.vue === "face" ? "Vu de face" : spec.vue === "dessus" ? "Vu de dessus" : "Vu de côté";
+    dessin = `<div class="scene"><svg class="illustration" viewBox="0 0 200 ${hauteur}" data-illustration="${idExo}" role="img" aria-label="Animation : ${esc(exo.nom)}">
+        ${dessinDecor(spec)}<g class="bonhomme">${dessinBonhomme(spec, poseA(spec, 0))}</g></svg></div>
+      <p class="doux">${esc(spec.legende || vue + ".")} ${spec.poses.length === 1 ? "Position à tenir." : "Animation simplifiée."}
+        ${!avecCharge(exo) && prevu(idExo).version === "facile" ? " Le dessin montre la version normale ; ta version facile est décrite plus bas." : ""}</p>`;
+  }
+  return `<div class="carte demo">
+      <h3>Démonstration</h3>
+      ${dessin}
+      <a class="bouton secondaire petit lien-video" href="${lienVideo}" target="_blank" rel="noopener noreferrer">▶ Voir des vidéos sur YouTube</a>
+      <p class="doux">Ouvre une recherche YouTube sur « ${esc(recherche)} ». Je n'ai pas vérifié les vidéos : choisis-en une claire, de préférence par un coach.</p>
+    </div>`;
+}
+
+// Fait bouger toutes les animations visibles (une image toutes les ~16 ms)
+let animationEnCours = null;
+function animerIllustrations() {
+  const zones = document.querySelectorAll("[data-illustration]");
+  if (!zones.length) { animationEnCours = null; return; }
+  const t = performance.now() / 1000;
+  zones.forEach(svg => {
+    const spec = ILLUSTRATIONS[svg.dataset.illustration];
+    if (!spec || spec.poses.length < 2) return;
+    svg.querySelector(".bonhomme").innerHTML = dessinBonhomme(spec, poseA(spec, t));
+  });
+  animationEnCours = requestAnimationFrame(animerIllustrations);
+}
+function lancerIllustrations() {
+  if (!animationEnCours && document.querySelector("[data-illustration]")) animationEnCours = requestAnimationFrame(animerIllustrations);
+}
+
 // ----- Fiche d'un exercice + suivi -----
 function pageExercice(idSeance, idExo, juste) {
   const exo = PROGRAMME.exercices[idExo];
@@ -1315,6 +1522,8 @@ function pageExercice(idSeance, idExo, juste) {
         ${exo.variante ? `<p class="note">${esc(REGLES.avertissementVariante)}</p>` : ""}
       </div>`;
   }
+
+  html += carteDemonstration(idExo);
 
   html += `<div class="carte">${avecCharge(exo) ? "<h3>À savoir</h3>" : `<h3>Niveau</h3><div>${esc(exo.niveau)}</div>`}
       ${exo.parCote ? `<div class="doux">À faire ${avecCharge(exo) ? "avec chaque main" : "de chaque côté"}.</div>` : ""}
@@ -1822,6 +2031,7 @@ function afficher({ garderDefilement = false } = {}) {
   document.querySelectorAll(".nav-bas a").forEach(a => a.classList.toggle("actif", a.dataset.onglet === onglet));
   if (page.apres) page.apres();
   if (!garderDefilement) window.scrollTo(0, 0);
+  lancerIllustrations();
 }
 
 if (!MODE_TEST) {

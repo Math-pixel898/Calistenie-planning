@@ -455,3 +455,22 @@ body.avec-minuteur .toast { bottom: calc(250px + env(safe-area-inset-bottom)); }
 .legende-muscles .pastille-couleur { flex: 0 0 12px; height: 12px; border-radius: 4px; transform: translateY(1px); }
 .legende-muscles .principal { background: var(--accent); }
 .legende-muscles .secondaire { background: color-mix(in srgb, var(--accent) 42%, var(--carte-2)); }
+
+/* ---------- Démonstration animée ---------- */
+.scene { background: var(--carte-2); border-radius: 16px; padding: 6px; margin: 6px 0 8px; }
+.illustration { display: block; width: 100%; max-width: 380px; margin: 0 auto; }
+.illustration .os { fill: none; stroke: var(--texte); stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round; }
+.illustration .os.loin { stroke: var(--texte-doux); opacity: 0.6; }
+.illustration .tete { fill: var(--texte); }
+.illustration .sol { stroke: var(--bord); stroke-width: 2.5; stroke-linecap: round; }
+.illustration .decor { fill: none; stroke: var(--texte-doux); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.8; }
+.illustration .decor.epais { stroke-width: 4; }
+.illustration .decor-plein { fill: var(--texte-doux); }
+.illustration .objet { fill: var(--accent); }
+.illustration .anse { stroke: var(--accent); stroke-width: 2; }
+.illustration .serviette { stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; }
+.illustration .reperes rect { fill: var(--carte); stroke: var(--bord); }
+.illustration .reperes circle, .illustration .reperes polygon { fill: var(--accent); }
+.illustration .reperes line { stroke: var(--texte-doux); stroke-width: 2; stroke-linecap: round; }
+.illustration .reperes text { fill: var(--texte-doux); font-size: 6px; font-weight: 700; }
+.lien-video { margin-top: 10px; }

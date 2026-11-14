@@ -20,6 +20,7 @@ Ouvre `tests.html` (ex. https://math-pixel898.github.io/Calistenie-planning/test
 |---|---|
 | `programme.js` | **tes exercices, séances, planning et règles** — le seul fichier à modifier |
 | `app.js` | le fonctionnement de l'app (commenté) |
+| `illustrations.js` | les petites animations des exercices et les recherches YouTube |
 | `tests.html`, `tests.js` | la page de tests des règles d'adaptation |
 | `index.html`, `style.css` | la page et son apparence (mode sombre automatique) |
 | `manifest.json`, `sw.js`, `icones/` | installation sur l'écran d'accueil et mode hors connexion |

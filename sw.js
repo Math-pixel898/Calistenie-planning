@@ -8,9 +8,9 @@
    Tes données d'entraînement ne sont PAS ici : elles sont dans le
    localStorage, que ce fichier ne touche jamais.
    ===================================================================== */
-const CACHE = "calisthenie-v5";
+const CACHE = "calisthenie-v6";
 const FICHIERS = [
-  "./", "index.html", "style.css", "app.js", "programme.js", "manifest.json",
+  "./", "index.html", "style.css", "app.js", "programme.js", "illustrations.js", "manifest.json",
   "icones/icone-192.png", "icones/icone-512.png", "tests.html", "tests.js"
 ];
 
