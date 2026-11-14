@@ -62,6 +62,8 @@ body {
 }
 
 main { padding: 16px; max-width: 640px; margin: 0 auto; }
+a { color: var(--accent); }
+.ligne-histo a { text-decoration: none; font-weight: 600; }
 
 /* ---------- Cartes ---------- */
 .carte {
@@ -156,3 +158,85 @@ label { display: block; font-weight: 600; margin: 10px 0 4px; }
 }
 .nav-bas a span { font-size: 0.72rem; }
 .nav-bas a.actif { color: var(--accent); background: var(--surligne); }
+
+/* =====================================================================
+   SUIVI, ADAPTATION, VOIX, HISTORIQUE
+   ===================================================================== */
+h2.section { font-size: 1rem; margin: 18px 4px 8px; color: var(--texte-doux); }
+.centre { text-align: center; }
+.rangee { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.rangee .bouton { width: auto; flex: 1; margin-bottom: 0; }
+.bouton.petit { padding: 10px 14px; font-size: 0.95rem; }
+.bouton.danger { background: var(--rouge); color: #fff; }
+.lien {
+  background: none; border: 0; padding: 6px 0; font: inherit;
+  color: var(--accent); text-decoration: underline; cursor: pointer; display: inline-block;
+}
+
+/* Les trois gros boutons */
+.gros {
+  display: flex; flex-direction: column; align-items: flex-start; width: 100%;
+  font: inherit; font-size: 1.15rem; font-weight: 700; text-align: left;
+  padding: 16px 18px; margin-bottom: 10px; border-radius: 14px; cursor: pointer;
+  border: 2px solid; background: var(--carte); color: var(--texte);
+}
+.gros small { font-size: 0.82rem; font-weight: 400; color: var(--texte-doux); margin-top: 2px; }
+.gros.vert   { border-color: var(--vert); }
+.gros.orange { border-color: var(--orange); }
+.gros.rouge  { border-color: var(--rouge); }
+.gros:active { transform: scale(0.98); }
+
+/* Douleur */
+fieldset.douleur { border: 1px solid var(--bord); border-radius: 12px; margin: 0 0 12px; padding: 8px 12px 12px; }
+fieldset.douleur legend { font-weight: 600; padding: 0 4px; }
+.case-a-cocher { display: inline-flex; align-items: center; gap: 6px; font-weight: 400; margin: 6px 14px 6px 0; }
+.case-a-cocher input { width: 22px; height: 22px; }
+#douleur-note { margin-top: 6px; }
+
+/* Saisie détaillée */
+details > summary { cursor: pointer; color: var(--accent); padding: 6px 0; }
+details.carte > summary { color: inherit; list-style: none; }
+details.carte > summary::-webkit-details-marker { display: none; }
+details.carte > summary h3 { display: inline; }
+details.carte > summary::after { content: " ▾"; color: var(--texte-doux); }
+.ligne-serie { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.ligne-serie label { margin: 0; min-width: 70px; font-weight: 400; }
+.ligne-serie input { width: 90px; }
+.deux-colonnes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* Cartes d'état */
+.carte.succes   { border-left: 5px solid var(--vert); }
+.carte.alerte   { border-left: 5px solid var(--rouge); }
+.carte.proposition { border-left: 5px solid var(--accent); }
+.carte.proposition.monter  { border-left-color: var(--vert); }
+.carte.proposition.baisser { border-left-color: var(--orange); }
+.carte p { margin: 8px 0; }
+.ligne-exo.fait { opacity: 0.75; }
+.ligne-exo.fait .num { background: var(--vert); color: var(--carte); }
+.ligne-histo { padding: 6px 0; border-top: 1px solid var(--bord); }
+.ligne-histo:first-of-type { border-top: 0; }
+
+/* Voix */
+.confirmation { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--bord); }
+.confirmation h3 { font-size: 1rem; }
+.avertissement { color: var(--orange); font-weight: 600; }
+
+/* Graphique */
+.graphique { width: 100%; height: auto; display: block; margin-top: 6px; }
+.graphique .grille-ligne { stroke: var(--bord); stroke-width: 1; }
+.graphique .axe { fill: var(--texte-doux); font-size: 10px; }
+.graphique .bande { fill: var(--texte-doux); opacity: 0.12; }
+.graphique .courbe { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+.graphique .marque { fill: var(--accent); stroke: var(--carte); stroke-width: 2; }
+.graphique .cible-toucher { fill: transparent; cursor: pointer; }
+.graphique .point.actif .marque { r: 7; }
+.info-point { min-height: 1.4em; margin-top: 4px; }
+
+/* Message temporaire */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 10;
+  background: var(--texte); color: var(--fond);
+  padding: 10px 16px; border-radius: 99px; font-size: 0.9rem;
+  max-width: calc(100% - 32px); text-align: center;
+}

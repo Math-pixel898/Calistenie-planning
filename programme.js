@@ -56,8 +56,21 @@ const PROGRAMME = {
   /* ----- Règles générales ----- */
   regles: {
     semainesPhaseDebut: 2,       // semaines 1-2 = séries "debut", ensuite "plein"
-    semainesAvantMonter: [2, 3], // rester 2 à 3 semaines au top avant de monter
+    joursAuTopAvantMonter: 14,   // rester au moins 2 semaines au top avant de monter (2-3 sem.)
     plusPetitCranKg: 1,          // ⚠️ à vérifier sur TON gripper (peut-être 0,5 kg)
+    chargeMaxKg: 12,             // maximum de ton gripper
+    pasReps: 2,                  // sans charge : on monte/baisse la fourchette de 2 reps
+    pasSecondes: 5,              // ... ou de 5 secondes pour les maintiens
+
+    // Douleur : quelles catégories sont concernées par chaque zone
+    // (sert à conseiller de réduire ou sauter les bonnes séances)
+    zonesDouleur: {
+      coude:   { nom: "Coude",   categories: ["pousser", "bras", "dos", "grip"] },
+      poignet: { nom: "Poignet", categories: ["pousser", "bras", "grip", "abdos"] },
+      autre:   { nom: "Autre",   categories: ["pousser", "abdos", "jambes", "dos", "bras", "grip"] }
+    },
+    douleurReduireApresHeures: 24,  // douleur qui dure plus de 24 h -> réduire / sauter
+    douleurMedecinApresJours: 7,    // plus d'une semaine -> consulter
     rappels: [
       "Reprise après une pause : vas-y progressivement, même si ça paraît trop facile au début.",
       "Grip : au moins un jour de repos entre deux séances de grip.",
