@@ -628,7 +628,7 @@ const PROGRAMME = {
     "pompes-sphinx": {
       nom: "Pompes sphinx (triceps)", type: "reps", versionDepart: "facile",
       muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
-      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 15, suite: "extensions-triceps-table", repos: [60, 75],
+      series: { debut: 2, plein: 2 }, objectif: 6, plafond: 15, suite: "pompes-sphinx-sureleves", repos: [60, 75],
       niveau: "Difficile",
       etapes: [
         "Position de planche sur les avant-bras.",
@@ -636,7 +636,7 @@ const PROGRAMME = {
         "Redescends sur les avant-bras en contrôlant.",
         "Corps gainé tout le long."
       ],
-      facile: "Debout face au mur : avant-bras contre le mur, pousser pour tendre les bras.",
+      facile: "Extensions triceps sur table : mains sur le bord d'une table très stable, corps incliné et gainé ; plie seulement les coudes (ils pointent vers le sol) puis tends les bras.",
       difficile: "Mains un peu plus en avant."
     },
     "pompes-doigts": {
@@ -1002,27 +1002,11 @@ const PROGRAMME = {
       difficile: "Descente en 3 secondes.",
       note: "Ça peut gêner l'avant des épaules : petite amplitude, arrête si ça pince."
     },
-    "extensions-triceps-table": {
-      nom: "Extensions triceps sur table", type: "reps",
-      muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
-      series: { debut: 2, plein: 3 }, objectif: 6, plafond: 15, repos: [60, 75],
-      conseilPlafond: "Garde 15 ; pour plus dur, utilise un support plus bas.",
-      niveau: "Difficile",
-      etapes: [
-        "Mains sur le bord d'une table très stable, corps incliné et gainé.",
-        "Plie seulement les coudes : la tête descend sous le niveau des mains.",
-        "Les coudes restent serrés et pointent vers le sol.",
-        "Tends les bras pour remonter."
-      ],
-      facile: "Pompes sphinx.",
-      difficile: "Support plus bas (chaise, canapé).",
-      note: "Ça peut charger les coudes : commence doucement."
-    },
+
     "pompes-doigts-genoux": {
       nom: "Pompes bout des doigts sur les genoux", type: "reps",
       muscles: { principaux: ["mains", "avantbras"], secondaires: ["pectoraux", "triceps"] },
-      series: { debut: 2, plein: 2 }, objectif: 4, plafond: 12, repos: [60, 90],
-      conseilPlafond: "Garde 12 : les doigts se renforcent lentement, pas besoin d'aller plus loin pour l'instant.",
+      series: { debut: 2, plein: 2 }, objectif: 4, plafond: 12, suite: "pompes-doigts-sol", repos: [60, 90],
       niveau: "Difficile — doigts très sollicités",
       etapes: [
         "À genoux, mains au sol sur le bout des doigts écartés, en « tente ».",
@@ -1035,6 +1019,39 @@ const PROGRAMME = {
       note: "Les doigts sont fragiles : vas-y très progressivement."
     },
 
+    "pompes-sphinx-sureleves": {
+      nom: "Pompes sphinx pieds surélevés", type: "reps",
+      muscles: { principaux: ["triceps"], secondaires: ["abdos", "epaules"] },
+      series: { debut: 2, plein: 3 }, objectif: 5, plafond: 12, repos: [60, 75],
+      conseilPlafond: "Garde 12 et descends en 3 secondes : c'est déjà très exigeant pour les triceps.",
+      niveau: "Très difficile",
+      etapes: [
+        "Pieds posés sur une chaise ou un lit stable, avant-bras au sol (comme une planche).",
+        "Pousse dans les paumes pour décoller les coudes et tendre les bras.",
+        "Redescends sur les avant-bras en contrôlant.",
+        "Corps gainé tout le long."
+      ],
+      facile: "Pompes sphinx classiques, pieds au sol.",
+      difficile: "Support plus haut, ou mains un peu plus en avant.",
+      note: "Ça charge beaucoup les coudes : commence doucement, arrête si ça tire dans le coude."
+    },
+    "pompes-doigts-sol": {
+      nom: "Pompes bout des doigts au sol", type: "reps",
+      muscles: { principaux: ["mains", "avantbras"], secondaires: ["pectoraux", "triceps", "epaules"] },
+      series: { debut: 2, plein: 2 }, objectif: 3, plafond: 10, repos: [90, 120],
+      conseilPlafond: "Garde 10 : c'est déjà un niveau avancé pour les doigts, pas besoin d'aller plus loin.",
+      avertissement: "⚠️ Exercice exigeant pour les doigts et les tendons. Doigts écartés et pliés en « tente », jamais écrasés à plat. Échauffe bien tes doigts avant, et arrête au moindre craquement ou douleur dans les doigts. Si tu as un doute, reste à l'étape précédente.",
+      niveau: "Très difficile — tout le poids du corps sur le bout des doigts",
+      etapes: [
+        "Position de pompe classique, sur les pieds, mais en appui sur le bout des doigts écartés.",
+        "Doigts légèrement pliés, en « tente » : la paume ne touche pas le sol.",
+        "Fais des pompes lentes, corps gainé.",
+        "Arrête la série dès que les doigts commencent à s'écraser."
+      ],
+      facile: "Pompes bout des doigts sur les genoux.",
+      difficile: "Plus lent, ou pause d'1 s en bas.",
+      note: "Exercice exigeant : échauffe tes doigts avant et arrête au moindre craquement ou douleur dans les doigts."
+    },
     /* ===================== GRIP (gripper réglable, 12 kg max) =====================
        Les kg sont des points de départ à ajuster, pas des valeurs prouvées.
        Positions inversée et 90° = variantes, sans preuve qu'elles soient

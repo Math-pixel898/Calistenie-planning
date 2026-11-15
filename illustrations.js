@@ -541,16 +541,7 @@ const ILLUSTRATIONS = (() => {
       ],
       duree: 1.3
     },
-    "extensions-triceps-table": {
-      recherche: "bodyweight triceps extension table",
-      legende: "Mains sur une table stable : seuls les coudes se plient, ils pointent vers le sol.",
-      accessoires: [{ t: "table", x1: 146, x2: 186, y: 84 }],
-      poses: [
-        { ...droit([60, SOL], -38), bras: { c: [150, 84], s: 1 } },
-        { ...droit([60, SOL], -24), tete: 10, bras: { c: [150, 84], s: 1 } }
-      ],
-      duree: 1.3
-    },
+
     "pompes-doigts-genoux": {
       recherche: "pompes bout des doigts genoux",
       legende: "À genoux, appui sur le bout des doigts écartés.",
@@ -561,6 +552,25 @@ const ILLUSTRATIONS = (() => {
       duree: 1.3
     },
 
+    "pompes-sphinx-sureleves": {
+      recherche: "sphinx push up pieds surélevés",
+      legende: "Pieds sur un support : des avant-bras posés au sol aux bras tendus, mains au même endroit.",
+      accessoires: [{ t: "banc", x1: 36, x2: 64, y: 94 }],
+      poses: [
+        { ...droit([60, 92], 2), bras: { c: [158, SOL - 1], s: 1 } },
+        { ...droit([60, 92], -7), bras: { c: [158, SOL - 1], s: 1 } }
+      ],
+      duree: 1.3
+    },
+    "pompes-doigts-sol": {
+      recherche: "fingertip push ups",
+      legende: "Pompe classique, sur les pieds, en appui sur le bout des doigts écartés.",
+      poses: [
+        { ...droit([62, SOL], -23), bras: { c: [140, SOL], s: 1 } },
+        { ...droit([62, SOL], -9), bras: { c: [140, SOL], s: 1 } }
+      ],
+      duree: 1.6
+    },
     /* ===================== GRIP : vidéos seulement ===================== */
     "grip-normale": { recherche: "hand gripper technique" },
     "grip-inversee": { recherche: "hand gripper reverse grip" },

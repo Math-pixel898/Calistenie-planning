@@ -362,7 +362,7 @@ function analyser(idExo) {
       if (suite && moment) {
         return { ...base, traitee, sens: "monter",
           titre: `Passer à « ${suite.nom} » ?`,
-          raison: `${plafondTexte} Pour continuer à progresser, l'app te propose une variante plus dure : « ${suite.nom} », en commençant à ${suite.objectif} ${unite(suite)}. Si tu ne te sens pas prêt, appuie sur « Ignorer » : tu continues ici à ${obj} ${u}, et l'app te le reproposera dans ${minReussies} séances réussies.`,
+          raison: `${plafondTexte} Pour continuer à progresser, l'app te propose une variante plus dure : « ${suite.nom} », en commençant à ${suite.objectif} ${unite(suite)}.${suite.avertissement ? " " + suite.avertissement : ""} Si tu ne te sens pas prêt, appuie sur « Ignorer » : tu continues ici à ${obj} ${u}, et l'app te le reproposera dans ${minReussies} séances réussies.`,
           changement: { remplacement: exo.suite } };
       }
       if (exo.alourdir && moment) {
