@@ -506,3 +506,11 @@ body.avec-barre .nav-bas { display: none; }
 
 /* Variante plus dure */
 .carte.variante { background: linear-gradient(135deg, var(--vert-doux), transparent 80%), var(--carte); }
+
+/* Minuteur : couleur selon la phase */
+.minuteur.travail { border: 2px solid var(--vert); }
+.minuteur.travail .minuteur-barre { background: var(--vert); }
+.minuteur.travail .minuteur-titre { color: var(--vert); }
+.minuteur.prep { border: 2px solid var(--orange); }
+.minuteur.prep .minuteur-barre { background: var(--orange); }
+.minuteur.prep .minuteur-titre { color: var(--orange); }

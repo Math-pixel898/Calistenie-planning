@@ -908,9 +908,10 @@ const minuteur = {
 let audio = null; // pour le bip
 
 // Prépare un compte à rebours (sans le lancer, sauf si lancer = true)
-function preparerMinuteur({ titre, secondes, lancer = false, ensuite = null }) {
+// genre : "repos" (par défaut), "prep" (3-2-1 avant de commencer) ou "travail" (maintien chronométré)
+function preparerMinuteur({ titre, secondes, lancer = false, ensuite = null, genre = "repos" }) {
   arreterTic();
-  Object.assign(minuteur, { titre, duree: secondes, fin: null, restant: secondes, ensuite });
+  Object.assign(minuteur, { titre, duree: secondes, fin: null, restant: secondes, ensuite, genre, dernierBip: null });
   if (lancer) lancerMinuteur(); else dessinerMinuteur();
 }
 
@@ -961,7 +962,24 @@ function tic() {
     if (suite) suite(); else toast("⏰ Repos terminé : c'est reparti !");
     return;
   }
+  // Pendant le 3-2-1 (et les 3 dernières secondes d'un maintien) : un petit bip par seconde
+  if (minuteur.fin && (minuteur.genre === "prep" || minuteur.genre === "travail")) {
+    const reste = Math.ceil((minuteur.fin - Date.now()) / 1000);
+    if (reste <= 3 && reste >= 1 && reste !== minuteur.dernierBip) { minuteur.dernierBip = reste; petitBip(); }
+  }
   dessinerMinuteur();
+}
+
+function petitBip() {
+  try {
+    if (!audio) return;
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.frequency.value = 660;
+    g.gain.setValueAtTime(0.18, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.12);
+    o.connect(g).connect(audio.destination);
+    o.start(); o.stop(audio.currentTime + 0.12);
+  } catch {}
 }
 
 // Bip + vibration à la fin (si le navigateur le permet)
@@ -990,6 +1008,7 @@ function dessinerMinuteur() {
   const reste = enCours ? Math.max(0, Math.ceil((minuteur.fin - Date.now()) / 1000)) : minuteur.restant;
   const avancement = minuteur.duree ? 100 * (1 - reste / minuteur.duree) : 0;
   zone.hidden = false;
+  zone.className = "minuteur " + (minuteur.genre || "repos");
   document.body.classList.add("avec-minuteur");
   zone.innerHTML = `
     <div class="minuteur-barre" style="width:${avancement}%"></div>
@@ -1046,6 +1065,58 @@ const reposConseille = exo => Math.round((exo.repos[0] + exo.repos[1]) / 2 / 15)
 
 // Nombre de séries déjà validées aujourd'hui, par exercice (en mémoire seulement)
 const seriesValidees = {};
+
+// Exercices en secondes : enchaînement automatique
+// 3-2-1 -> maintien (-> change de côté 3-2-1 -> maintien) -> série validée -> repos -> 3-2-1 -> ...
+let chronoEnCours = null; // id de l'exercice dont la série chronométrée tourne
+
+function jouerPhases(phases, fin) {
+  if (!phases.length) { fin(); return; }
+  const [ph, ...reste] = phases;
+  preparerMinuteur({ titre: ph.titre, secondes: ph.secondes, genre: ph.genre, lancer: true, ensuite: () => jouerPhases(reste, fin) });
+}
+
+function lancerSerieChrono(idSeance, idExo, premiere = false) {
+  const exo = PROGRAMME.exercices[idExo];
+  const p = prevu(idExo);
+  const cle = cleSeries(idExo);
+  const k = (seriesValidees[cle] || 0) + 1;            // numéro de la série
+  const cote = exo.parCote ? " · côté 1" : "";
+  const phases = [
+    { titre: premiere ? `Mets-toi en position · série ${k}` : `Prêt ? · série ${k}`, secondes: premiere ? 5 : 3, genre: "prep" },
+    { titre: `Série ${k}${cote} · tiens !`, secondes: p.objectif, genre: "travail" }
+  ];
+  if (exo.parCote) {
+    phases.push({ titre: "Change de côté", secondes: 3, genre: "prep" },
+                { titre: `Série ${k} · côté 2 · tiens !`, secondes: p.objectif, genre: "travail" });
+  }
+  chronoEnCours = idExo;
+  rafraichirSiSurFiche(idExo);
+  jouerPhases(phases, () => {
+    seriesValidees[cle] = k;                            // la série compte comme faite
+    if (k < p.series) {
+      // Repos automatique, puis la série suivante s'enchaîne (avec son 3-2-1)
+      preparerMinuteur({ titre: `Repos · ensuite série ${k + 1}`, secondes: reposConseille(exo), genre: "repos", lancer: true,
+        ensuite: () => lancerSerieChrono(idSeance, idExo) });
+    } else {
+      chronoEnCours = null;
+      fermerMinuteur();
+      toast("Toutes les séries sont faites 💪");
+    }
+    rafraichirSiSurFiche(idExo);
+  });
+}
+
+function arreterChrono(idExo) {
+  chronoEnCours = null;
+  fermerMinuteur();
+  rafraichirSiSurFiche(idExo);
+}
+
+// Réaffiche la fiche (barre du bas) seulement si on est dessus
+function rafraichirSiSurFiche(idExo) {
+  if (location.hash.split("?")[0].endsWith("/" + idExo)) afficher({ garderDefilement: true });
+}
 const cleSeries = idExo => aujourdhuiISO() + "|" + idExo;
 
 /* ---------------------------------------------------------------------
@@ -1454,8 +1525,10 @@ function articulations(pose) {
 // Durée de chaque étape de l'animation
 function etapesAnimation(spec) {
   const n = spec.poses.length;
-  const pause = spec.pause ?? 0.35;
-  return Array.from({ length: n }, (_, i) => ({ pause, duree: spec.durees?.[i] ?? spec.duree ?? 1.2 }));
+  return Array.from({ length: n }, (_, i) => ({
+    pause: spec.pauses?.[i] ?? spec.pause ?? 0.35,
+    duree: spec.durees?.[i] ?? spec.duree ?? 1.2
+  }));
 }
 
 // La pose à l'instant t (en secondes), en boucle
@@ -1680,8 +1753,13 @@ function pageExercice(idSeance, idExo, juste) {
     const faites = seriesValidees[cleSeries(idExo)] || 0;
     const pastilles = `<div class="pastilles" aria-label="Séries faites : ${Math.min(faites, p.series)} sur ${p.series}">${Array.from({ length: p.series }, (_, k) =>
         `<span class="pastille ${k < faites ? "faite" : ""}">${k + 1}</span>`).join("")}</div>`;
+    const boutonSerie = exo.type === "temps"
+      ? (chronoEnCours === idExo
+          ? `<button class="bouton secondaire" id="arreter-chrono">⏹ Arrêter le chrono</button>`
+          : `<button class="bouton" id="lancer-chrono">▶ Série ${faites + 1} · ${p.objectif} s${exo.parCote ? " par côté" : ""}</button>`)
+      : `<button class="bouton" id="valider-serie">✓ Série ${faites + 1} faite</button>`;
     barre = faites < p.series
-      ? `<div class="barre-series">${pastilles}<button class="bouton" id="valider-serie">✓ Série ${faites + 1} faite</button></div>`
+      ? `<div class="barre-series">${pastilles}${boutonSerie}</div>`
       : `<div class="barre-resultats">
            <button class="mini vert" data-resultat="tout">✅<span>Tout fait</span></button>
            <button class="mini orange" data-resultat="moins">🟠<span>Moins</span></button>
@@ -1689,7 +1767,9 @@ function pageExercice(idSeance, idExo, juste) {
          </div>`;
     html += `<div class="carte" id="suivi">
       <h3>Comment ça s'est passé ?</h3>
-      <p class="doux">Valide tes séries avec le bouton en bas de l'écran (repos de ${mmss(reposConseille(exo))} lancé automatiquement entre deux séries), ou réponds directement ici.</p>
+      <p class="doux">${exo.type === "temps"
+        ? `Appuie sur « ▶ Série » en bas : 5 s pour te mettre en place, puis le chrono compte tes ${p.objectif} s${exo.parCote ? " (un côté, puis l'autre)" : ""}, lance le repos et enchaîne la série suivante tout seul.`
+        : `Valide tes séries avec le bouton en bas de l'écran (repos de ${mmss(reposConseille(exo))} lancé automatiquement entre deux séries), ou réponds directement ici.`}</p>
       <p class="doux">Objectif : ${p.series} × ${p.objectif} ${unite(exo)}${exo.parCote ? (avecCharge(exo) ? " par main" : " par côté") : ""}${avecCharge(exo) ? " à " + kg(p.chargeKg) : ""}.</p>
 
       <fieldset class="douleur">
@@ -1767,6 +1847,12 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     };
     return;
   }
+
+  // Exercices en secondes : chrono automatique
+  const lancerChrono = $("#lancer-chrono");
+  if (lancerChrono) lancerChrono.onclick = () => lancerSerieChrono(idSeance, idExo, true);
+  const stopChrono = $("#arreter-chrono");
+  if (stopChrono) stopChrono.onclick = () => arreterChrono(idExo);
 
   // Bouton "Série faite" -> repos proposé (sauf après la dernière série)
   const valider = $("#valider-serie");

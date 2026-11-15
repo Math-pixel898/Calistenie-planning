@@ -105,8 +105,13 @@ const ILLUSTRATIONS = (() => {
     },
     "planche-laterale": {
       recherche: "gainage latéral",
-      legende: "Vu de face : appui sur un avant-bras, l'autre bras vers le haut, corps aligné.",
-      poses: [{ ...droit([60, SOL], -13), bras: [[90, 0], [-90, -90]] }]
+      vue: "face",
+      legende: "Vu de face : appui sur un avant-bras, on monte le bassin, l'autre bras vers le plafond, et on tient.",
+      poses: [
+        { hanche: [112, 109], tronc: -25, bras: [[90, 0], [-90, -90]], jambes: { c: [60, SOL], s: -1 } },
+        { ...droit([60, SOL], -13), bras: [[90, 0], [-90, -90]] }
+      ],
+      durees: [0.9, 0.9], pauses: [0.6, 2.4]
     },
     "releves-jambes": {
       recherche: "relevés de jambes allongé",
@@ -392,8 +397,13 @@ const ILLUSTRATIONS = (() => {
     },
     "planche-laterale-jambe": {
       recherche: "gainage latéral jambe levée",
-      legende: "Vu de face : gainage latéral, la jambe du dessus levée.",
-      poses: [{ ...droit([60, SOL], -13), bras: [[90, 0], [-90, -90]], jambes: [{ c: [60, SOL], s: -1 }, [192, 192]] }]
+      vue: "face",
+      legende: "Vu de face : on monte le bassin, on lève la jambe du dessus, et on tient.",
+      poses: [
+        { hanche: [112, 109], tronc: -25, bras: [[90, 0], [-90, -90]], jambes: [{ c: [60, SOL], s: -1 }, [178, 178]] },
+        { ...droit([60, SOL], -13), bras: [[90, 0], [-90, -90]], jambes: [{ c: [60, SOL], s: -1 }, [192, 192]] }
+      ],
+      durees: [0.9, 0.9], pauses: [0.6, 2.4]
     },
     "releves-bassin": {
       recherche: "reverse crunch",
