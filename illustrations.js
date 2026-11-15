@@ -192,32 +192,39 @@ const ILLUSTRATIONS = (() => {
     /* ===================== DOS ===================== */
     "suspension-passive": {
       recherche: "dead hang barre",
+      vue: "face",
+      legende: "Vu de face : les deux mains sur la barre, un peu plus écartées que les épaules, bras tendus.",
       hauteur: 155, sol: null,
-      accessoires: [{ t: "barre", y: 22, x1: 60, x2: 140 }],
-      poses: [{ hanche: [100, 88], tronc: -90, bras: { c: [100, 22], s: 1 }, jambes: [95, 100] }]
+      accessoires: [{ t: "barre", y: 22, x1: 55, x2: 145 }],
+      poses: [{ hanche: [100, 88], tronc: -90, largeur: 9, bras: [{ c: [86, 22], s: -1 }, { c: [114, 22], s: 1 }], jambes: [[93, 93], [87, 87]] }]
     },
+
     "tirages-omoplates": {
       recherche: "scapula pull up",
-      legende: "Bras toujours tendus : on tire seulement les épaules vers le bas, le corps monte un peu.",
+      vue: "face",
+      legende: "Vu de face, deux mains sur la barre, bras toujours tendus : on tire seulement les épaules vers le bas, le corps monte un peu.",
       hauteur: 155, sol: null,
-      accessoires: [{ t: "barre", y: 22, x1: 60, x2: 140 }],
+      accessoires: [{ t: "barre", y: 22, x1: 55, x2: 145 }],
       poses: [
-        { hanche: [100, 88], tronc: -90, bras: { c: [100, 22], tendu: true }, jambes: [95, 100] },
-        { hanche: [100, 82], tronc: -90, bras: { c: [100, 22], tendu: true }, jambes: [95, 100] }
+        { hanche: [100, 88], tronc: -90, largeur: 9, bras: [{ c: [86, 22], tendu: true }, { c: [114, 22], tendu: true }], jambes: [[93, 93], [87, 87]] },
+        { hanche: [100, 82], tronc: -90, largeur: 9, bras: [{ c: [86, 22], tendu: true }, { c: [114, 22], tendu: true }], jambes: [[93, 93], [87, 87]] }
       ],
       duree: 1
     },
+
     "tractions-negatives": {
       recherche: "tractions négatives",
-      legende: "On part en haut (en sautant), puis on descend le plus lentement possible.",
+      vue: "face",
+      legende: "Vu de face, deux mains sur la barre : on part en haut (en sautant), puis on descend le plus lentement possible.",
       hauteur: 155, sol: null,
-      accessoires: [{ t: "barre", y: 22, x1: 60, x2: 140 }],
+      accessoires: [{ t: "barre", y: 22, x1: 55, x2: 145 }],
       poses: [
-        { hanche: [96, 57], tronc: -90, bras: { c: [100, 22], s: 1 }, jambes: [95, 125] },
-        { hanche: [100, 88], tronc: -90, bras: { c: [100, 22], s: 1 }, jambes: [95, 125] }
+        { hanche: [100, 57], tronc: -90, largeur: 9, bras: [{ c: [84, 22], s: -1 }, { c: [116, 22], s: 1 }], jambes: [[93, 93], [87, 87]] },
+        { hanche: [100, 88], tronc: -90, largeur: 9, bras: [{ c: [84, 22], s: -1 }, { c: [116, 22], s: 1 }], jambes: [[93, 93], [87, 87]] }
       ],
       durees: [3.2, 0.9]
     },
+
     "tractions-australiennes": {
       recherche: "tractions australiennes",
       accessoires: [{ t: "barreBasse", x: 134, y: 56 }],
@@ -487,15 +494,17 @@ const ILLUSTRATIONS = (() => {
     },
     "tractions": {
       recherche: "traction barre technique débutant",
-      legende: "On tire jusqu'à passer le menton au-dessus de la barre, puis on redescend en contrôlant.",
+      vue: "face",
+      legende: "Vu de face, deux mains sur la barre : on tire jusqu'à passer le menton au-dessus de la barre (coudes vers le bas), puis on redescend en contrôlant.",
       hauteur: 155, sol: null,
-      accessoires: [{ t: "barre", y: 22, x1: 60, x2: 140 }],
+      accessoires: [{ t: "barre", y: 22, x1: 55, x2: 145 }],
       poses: [
-        { hanche: [100, 88], tronc: -90, bras: { c: [100, 22], s: 1 }, jambes: [95, 125] },
-        { hanche: [96, 57], tronc: -90, bras: { c: [100, 22], s: 1 }, jambes: [95, 125] }
+        { hanche: [100, 88], tronc: -90, largeur: 9, bras: [{ c: [84, 22], s: -1 }, { c: [116, 22], s: 1 }], jambes: [[93, 93], [87, 87]] },
+        { hanche: [100, 57], tronc: -90, largeur: 9, bras: [{ c: [84, 22], s: -1 }, { c: [116, 22], s: 1 }], jambes: [[93, 93], [87, 87]] }
       ],
       durees: [1.3, 1.6]
     },
+
     "australiennes-pieds-sureleves": {
       recherche: "tractions australiennes pieds surélevés",
       accessoires: [{ t: "barreBasse", x: 134, y: 56 }, { t: "banc", x1: 28, x2: 56, y: 94 }],
