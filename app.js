@@ -41,6 +41,7 @@ function donneesVides() {
     decalages: {},              // { "lundi de la semaine": [{ cle, jourPrevu, vers }] }
     seancesSautees: {},         // { "lundi de la semaine": ["cle@jourPrevu"] } (séance ratée laissée tomber)
     echauffements: {},          // { "2026-11-14": "fait" | "passe" }
+    etirementsFaits: {},        // { "2026-11-14": { pousser: "fait" | "passe" } }
     derniereSauvegarde: null,   // date du dernier export (fichier de sauvegarde)
     rappelSauvegardeMasque: null // jour où tu as appuyé sur « Plus tard »
   };
@@ -1242,6 +1243,99 @@ function brancherEchauffement(seance) {
   $("#ech-arreter") && ($("#ech-arreter").onclick = () => { fermerMinuteur(); finir("passe"); });
 }
 
+// ----- Étirements de fin de séance -----
+let etapeEtirement = null; // { seance, index } pendant les étirements guidés
+
+// Durée de chaque étirement : s'allonge avec les progressions acceptées dans cette séance
+function dureeEtirement(idSeance) {
+  const r = PROGRAMME.reglesEtirements || { dureeDepart: 30, plus: 5, progressionsParPalier: 4, dureeMax: 60 };
+  const exos = new Set(PROGRAMME.seances[idSeance]?.exercices || []);
+  exercicesDe(idSeance).forEach(id => exos.add(id));
+  const progressions = (donnees.historiqueAjustements || []).filter(h => {
+    if (!exos.has(h.exo)) return false;
+    const av = h.avant || {}, ap = h.apres || {};
+    return ap.remplacement || ap.version === "normale"
+      || (ap.chargeKg !== undefined && av.chargeKg !== undefined && ap.chargeKg > av.chargeKg)
+      || (ap.objectif !== undefined && av.objectif !== undefined && ap.objectif > av.objectif && ap.chargeKg === undefined);
+  }).length;
+  return Math.min(r.dureeMax, r.dureeDepart + r.plus * Math.floor(progressions / r.progressionsParPalier));
+}
+
+const etirementsDe = idSeance => (PROGRAMME.seances[idSeance]?.etirements || []).filter(id => PROGRAMME.etirements?.[id]);
+const etatEtirements = idSeance => donnees.etirementsFaits?.[aujourdhuiISO()]?.[idSeance] || null;
+
+function dureeTotaleEtirements(idSeance) {
+  const d = dureeEtirement(idSeance);
+  return etirementsDe(idSeance).reduce((t, id) => t + 5 + (PROGRAMME.etirements[id].parCote ? 2 * d + 3 : d), 0);
+}
+
+function carteEtirements(idSeance) {
+  const ids = etirementsDe(idSeance);
+  if (!ids.length) return "";
+  const d = dureeEtirement(idSeance);
+  const etat = etatEtirements(idSeance);
+  const enCours = etapeEtirement?.seance === idSeance ? etapeEtirement.index : null;
+  if (etat && enCours === null) {
+    return `<div class="carte etirements replie">
+        <span>${etat === "fait" ? "✅ Étirements faits aujourd'hui" : "⏭️ Étirements passés"}</span>
+        <button class="lien" id="eti-commencer">${etat === "fait" ? "Refaire" : "Les faire"}</button>
+      </div>`;
+  }
+  return `<div class="carte etirements" id="carte-etirements">
+      <h3>🧘 Étirements de fin de séance <span class="doux">· ~${Math.ceil(dureeTotaleEtirements(idSeance) / 60)} min</span></h3>
+      <p class="doux">${d} s par étirement${d > 30 ? " (la durée s'est allongée avec ta progression)" : " — ça s'allongera un peu avec ta progression"}. Doucement, sans forcer ni à-coups.</p>
+      <ol class="mouvements">${ids.map((id, k) => {
+        const e = PROGRAMME.etirements[id];
+        return `<li class="${k === enCours ? "en-cours" : enCours !== null && k < enCours ? "fait" : ""}">
+          <strong>${esc(e.nom)}</strong> <span class="doux">· ${d} s${e.parCote ? " par côté" : ""}</span><br>
+          <span class="doux">${esc(e.consigne)}</span>
+          <a class="lien petit-lien" href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.recherche || e.nom)}" target="_blank" rel="noopener noreferrer">▶ vidéo</a></li>`;
+      }).join("")}
+      </ol>
+      ${enCours === null ? `<div class="rangee">
+          <button class="bouton petit" id="eti-commencer">▶ Commencer les étirements</button>
+          <button class="bouton petit secondaire" id="eti-passer">Passer</button>
+        </div>` : `<button class="bouton petit secondaire" id="eti-arreter">Arrêter les étirements</button>`}
+    </div>`;
+}
+
+function finirEtirements(idSeance, etat) {
+  etapeEtirement = null;
+  donnees.etirementsFaits = donnees.etirementsFaits || {};
+  const jour = aujourdhuiISO();
+  donnees.etirementsFaits[jour] = Object.assign({}, donnees.etirementsFaits[jour], { [idSeance]: etat });
+  sauverDonnees();
+  if (location.hash.split("?")[0] === "#/seance/" + idSeance) afficher({ garderDefilement: true });
+}
+
+// Étirements guidés : mise en place -> étirement (-> change de côté -> étirement) -> suivant
+function lancerEtirements(idSeance) {
+  const ids = etirementsDe(idSeance);
+  const d = dureeEtirement(idSeance);
+  if (location.hash.split("?")[0] !== "#/seance/" + idSeance) location.hash = "#/seance/" + idSeance;
+  const etape = k => {
+    if (k >= ids.length) { fermerMinuteur(); toast("Étirements terminés 👍 Bonne récup !"); finirEtirements(idSeance, "fait"); return; }
+    etapeEtirement = { seance: idSeance, index: k };
+    const e = PROGRAMME.etirements[ids[k]];
+    const phases = [
+      { titre: `Mets-toi en position · ${e.nom}`, secondes: 5, genre: "prep" },
+      { titre: `${k + 1}/${ids.length} · ${e.nom}${e.parCote ? " · côté 1" : ""}`, secondes: d, genre: "travail" }
+    ];
+    if (e.parCote) phases.push({ titre: "Change de côté", secondes: 3, genre: "prep" },
+                               { titre: `${k + 1}/${ids.length} · ${e.nom} · côté 2`, secondes: d, genre: "travail" });
+    afficher({ garderDefilement: true });
+    setTimeout(() => $("#carte-etirements")?.scrollIntoView({ behavior: "smooth", block: "start" }), 300);
+    jouerPhases(phases, () => etape(k + 1));
+  };
+  etape(0);
+}
+
+function brancherEtirements(idSeance) {
+  $("#eti-commencer") && ($("#eti-commencer").onclick = () => lancerEtirements(idSeance));
+  $("#eti-passer") && ($("#eti-passer").onclick = () => finirEtirements(idSeance, "passe"));
+  $("#eti-arreter") && ($("#eti-arreter").onclick = () => { fermerMinuteur(); finirEtirements(idSeance, "passe"); });
+}
+
 // ----- Séance : liste des exercices + saisie vocale -----
 function pageSeance(idSeance) {
   const s = PROGRAMME.seances[idSeance];
@@ -1255,7 +1349,7 @@ function pageSeance(idSeance) {
   html += premier
     ? `<a class="bouton" href="#/exo/${idSeance}/${premier}">▶ ${faits ? "Continuer" : "Commencer"} la séance</a>
        <p class="doux">Les exercices s'enchaînent : tu valides, une pause de ${Math.round((REGLES.reposEntreExercices || 60) / 60 * 10) / 10 === 1 ? "1 minute" : (REGLES.reposEntreExercices || 60) + " s"} démarre, puis le suivant s'ouvre tout seul.</p>`
-    : `<div class="carte succes centre"><h3>Séance terminée aujourd'hui 🎉</h3></div>`;
+    : `<div class="carte succes centre"><h3>${etirementsDe(idSeance).length && !etatEtirements(idSeance) ? "Exercices terminés 🎉 Place aux étirements 👇" : "Séance terminée aujourd'hui 🎉"}</h3></div>`;
 
   ids.forEach((idExo, i) => {
     const exo = PROGRAMME.exercices[idExo];
@@ -1270,6 +1364,9 @@ function pageSeance(idSeance) {
       </a>`;
   });
 
+  // Étirements de fin de séance
+  html += carteEtirements(idSeance);
+
   // Saisie vocale
   html += `<div class="carte" id="vocal">
       <h3>🎤 Dicter un exercice</h3>
@@ -1283,7 +1380,7 @@ function pageSeance(idSeance) {
       <div id="compris"></div>
     </div>`;
 
-  return { titre: s.nom, html, retour: "#/", apres: () => { brancherDouleurs(); brancherEchauffement(s); brancherVocal(idSeance, ids); } };
+  return { titre: s.nom, html, retour: "#/", apres: () => { brancherDouleurs(); brancherEchauffement(s); brancherEtirements(idSeance); brancherVocal(idSeance, ids); } };
 }
 
 function exempleDictee(ids) {
@@ -1744,11 +1841,13 @@ function pageExercice(idSeance, idExo, juste) {
     html += suivant
       ? `${reposEnCours ? `<p class="doux centre">⏱ Repos en cours : l'exercice suivant s'ouvrira tout seul à la fin.</p>` : ""}
          <a class="bouton aller-suivant" id="aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Exercice suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
-      : `<div class="carte succes centre"><h3>Séance terminée 🎉</h3><p class="doux">Tous les exercices de « ${esc(seance.nom)} » sont faits aujourd'hui.</p></div>
-         <a class="bouton" href="#/">Retour au planning</a>`;
+      : `<div class="carte succes centre"><h3>Exercices terminés 🎉</h3><p class="doux">Tous les exercices de « ${esc(seance.nom)} » sont faits aujourd'hui.${etirementsDe(idSeance).length && !etatEtirements(idSeance) ? " Il reste les étirements (bouton en bas)." : ""}</p></div>
+         <a class="bouton secondaire" href="#/">Retour au planning</a>`;
     barre = suivant
       ? `<a class="bouton aller-suivant" href="#/exo/${idSeance}/${suivant}">${reposEnCours ? "Passer le repos" : "Suivant"} : ${esc(PROGRAMME.exercices[suivant].nom)} ›</a>`
-      : `<a class="bouton" href="#/">Séance terminée 🎉 · Planning</a>`;
+      : etirementsDe(idSeance).length && !etatEtirements(idSeance)
+        ? `<button class="bouton" id="barre-etirements">🧘 Étirements de fin (~${Math.ceil(dureeTotaleEtirements(idSeance) / 60)} min) ›</button>`
+        : `<a class="bouton" href="#/">Séance terminée 🎉 · Planning</a>`;
   } else {
     const faites = seriesValidees[cleSeries(idExo)] || 0;
     const pastilles = `<div class="pastilles" aria-label="Séries faites : ${Math.min(faites, p.series)} sur ${p.series}">${Array.from({ length: p.series }, (_, k) =>
@@ -1836,6 +1935,7 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
     afficher({ garderDefilement: true });
   });
   if (entreeJuste) {
+    if ($("#barre-etirements")) $("#barre-etirements").onclick = () => lancerEtirements(idSeance);
     // On montre directement la confirmation (et le bouton pour passer le repos)
     setTimeout(() => $("#annuler")?.closest(".carte")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
     document.querySelectorAll(".aller-suivant").forEach(a => a.addEventListener("click", () => fermerMinuteur()));

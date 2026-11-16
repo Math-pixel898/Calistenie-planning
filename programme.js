@@ -131,43 +131,75 @@ const PROGRAMME = {
     }
   },
 
+  /* ----- Étirements de fin de séance -----
+     Guidés par le chrono, ce ne sont pas des exercices (pas de plafond).
+     Durée : dureeDepart, puis +plus secondes toutes les "progressionsParPalier"
+     progressions acceptées dans la séance, sans dépasser dureeMax. */
+  reglesEtirements: { dureeDepart: 30, plus: 5, progressionsParPalier: 4, dureeMax: 60 },
+  etirements: {
+    "pectoraux-porte": { nom: "Pectoraux contre un mur", parCote: true, recherche: "étirement pectoraux mur",
+      consigne: "Avant-bras posé contre un mur ou un encadrement de porte, coude à hauteur d'épaule. Tourne doucement le buste de l'autre côté jusqu'à sentir l'étirement dans la poitrine." },
+    "triceps-tete": { nom: "Triceps derrière la tête", parCote: true, recherche: "étirement triceps derrière la tête",
+      consigne: "Lève un bras, plie le coude pour poser la main derrière la tête. Avec l'autre main, pousse doucement le coude vers l'arrière." },
+    "biceps-mur": { nom: "Biceps et avant-bras au mur", parCote: true, recherche: "étirement biceps mur",
+      consigne: "Main à plat sur un mur à hauteur d'épaule, doigts vers l'arrière, bras tendu. Tourne doucement le corps vers l'extérieur." },
+    "epaules-bras-croise": { nom: "Épaule, bras croisé", parCote: true, recherche: "étirement épaule bras croisé",
+      consigne: "Bras tendu devant toi, ramène-le contre la poitrine avec l'autre bras, au niveau du coude. Épaules basses." },
+    "dorsaux-support": { nom: "Grand dorsal sur un support", parCote: false, recherche: "étirement grand dorsal chaise",
+      consigne: "Mains posées sur une chaise ou une table, bras tendus. Recule les pieds et laisse descendre la poitrine vers le sol, dos droit." },
+    "posture-enfant": { nom: "Posture de l'enfant", parCote: false, recherche: "posture de l'enfant étirement dos",
+      consigne: "À genoux, assieds-toi sur les talons, puis allonge le buste vers l'avant, bras tendus au sol devant toi. Respire calmement." },
+    "cobra": { nom: "Cobra (abdominaux)", parCote: false, recherche: "étirement cobra abdominaux",
+      consigne: "Allongé sur le ventre, mains sous les épaules. Pousse doucement pour lever la poitrine, bassin au sol. Arrête si le bas du dos pince." },
+    "quadriceps-debout": { nom: "Quadriceps debout", parCote: true, recherche: "étirement quadriceps debout",
+      consigne: "Debout, une main au mur. Attrape ta cheville et ramène le talon vers les fesses, genoux côte à côte, bassin droit." },
+    "ischios-assis": { nom: "Arrière des cuisses, assis", parCote: true, recherche: "étirement ischio jambiers assis",
+      consigne: "Assis, une jambe tendue devant, l'autre pliée. Penche-toi en avant, dos droit, vers le pied de la jambe tendue." },
+    "mollets-mur": { nom: "Mollets au mur", parCote: true, recherche: "étirement mollet mur",
+      consigne: "Mains au mur, une jambe derrière, tendue, talon au sol. Plie la jambe avant jusqu'à sentir l'étirement dans le mollet arrière." },
+    "avant-bras-paume": { nom: "Avant-bras, paume vers l'avant", parCote: true, recherche: "étirement fléchisseurs avant bras",
+      consigne: "Bras tendu devant toi, paume vers l'avant, doigts vers le bas. Avec l'autre main, tire doucement les doigts vers toi." },
+    "avant-bras-dos-main": { nom: "Avant-bras, dos de la main", parCote: true, recherche: "étirement extenseurs avant bras",
+      consigne: "Bras tendu devant toi, poing fermé ou main relâchée, doigts vers le bas. Avec l'autre main, pousse doucement le dos de la main vers toi." }
+  },
+
   /* ----- Séances : une séance = une liste d'exercices, dans l'ordre ----- */
   seances: {
     "pousser": {
-      nom: "Pompes / pousser", categorie: "pousser", echauffement: "poignets",
+      nom: "Pompes / pousser", categorie: "pousser", etirements: ["pectoraux-porte", "triceps-tete"], echauffement: "poignets",
       exercices: ["pompes-mur", "pompes-classiques", "pompes-ecartees",
                   "pompes-diamant", "chenille", "pompes-piquees"]
     },
     "abdos": {
-      nom: "Abdos / gainage", categorie: "abdos",
+      nom: "Abdos / gainage", categorie: "abdos", etirements: ["cobra", "posture-enfant"],
       exercices: ["dead-bug", "planche", "planche-laterale",
                   "releves-jambes", "position-creuse", "grimpeurs-lents"]
     },
     "jambes": {
-      nom: "Jambes", categorie: "jambes",
+      nom: "Jambes", categorie: "jambes", etirements: ["quadriceps-debout", "ischios-assis"],
       exercices: ["squat", "fentes-arriere", "pont-fessier",
                   "chaise-mur", "fentes-laterales", "mollets"]
     },
     "dos-barre": {
-      nom: "Dos — à la barre (dehors)", categorie: "dos",
+      nom: "Dos — à la barre (dehors)", categorie: "dos", etirements: ["dorsaux-support", "epaules-bras-croise"],
       exercices: ["suspension-passive", "tirages-omoplates", "tractions-negatives",
                   "tractions-australiennes", "superman"]
     },
     "dos-maison": {
-      nom: "Dos — à la maison", categorie: "dos",
+      nom: "Dos — à la maison", categorie: "dos", etirements: ["posture-enfant", "epaules-bras-croise"],
       exercices: ["superman", "rowing-sac", "ytw", "anges-inverses", "ecartement-serviette"]
     },
     "bras": {
-      nom: "Bras", categorie: "bras",
+      nom: "Bras", categorie: "bras", etirements: ["triceps-tete", "biceps-mur"],
       exercices: ["pompes-serrees", "dips-chaise", "curl-sac",
                   "curl-serviette", "pompes-sphinx", "pompes-doigts"]
     },
     "grip-a": {
-      nom: "Grip — Séance A", categorie: "grip", echauffement: "poignets",
+      nom: "Grip — Séance A", categorie: "grip", etirements: ["avant-bras-paume", "avant-bras-dos-main"], echauffement: "poignets",
       exercices: ["grip-normale", "grip-inversee", "grip-negatifs"]
     },
     "grip-b": {
-      nom: "Grip — Séance B", categorie: "grip", echauffement: "poignets",
+      nom: "Grip — Séance B", categorie: "grip", etirements: ["avant-bras-paume", "avant-bras-dos-main"], echauffement: "poignets",
       exercices: ["grip-90", "grip-maintien", "grip-lente-inversee"]
     }
   },
