@@ -166,7 +166,7 @@ const PROGRAMME = {
   /* ----- Séances : une séance = une liste d'exercices, dans l'ordre ----- */
   seances: {
     "pousser": {
-      nom: "Pompes / pousser", categorie: "pousser", etirements: ["pectoraux-porte", "triceps-tete"], echauffement: "poignets",
+      nom: "Pompes / pousser", categorie: "pousser", etirements: ["pectoraux-porte", "triceps-tete", "epaules-bras-croise"], echauffement: "poignets",
       exercices: ["pompes-mur", "pompes-classiques", "pompes-ecartees",
                   "pompes-diamant", "chenille", "pompes-piquees"]
     },
