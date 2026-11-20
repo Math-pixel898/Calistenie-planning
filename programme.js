@@ -629,7 +629,7 @@ const PROGRAMME = {
       note: "Ça peut gêner l'avant des épaules : reste sur une petite amplitude, arrête si ça pince."
     },
     "curl-sac": {
-      nom: "Curl biceps avec sac à dos", type: "reps",
+      nom: "Curl biceps avec sac à dos", type: "reps", parCote: true,
       muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
       series: { debut: 2, plein: 3 }, objectif: 10, plafond: 20, alourdir: "Ajoute des livres ou des bouteilles d'eau dans le sac.", repos: [45, 60],
       niveau: "Moyen — dépend du poids du sac",
@@ -649,10 +649,10 @@ const PROGRAMME = {
       series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, conseilPlafond: "Garde 45 s en tirant plus fort.", repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
-        "Mets un pied sur le milieu d'une serviette, tiens les deux bouts.",
+        "Mets un pied sur le milieu d'une serviette, tiens un bout dans chaque main.",
         "Coudes pliés à 90°.",
         "Tire vers le haut le plus fort possible, sans bouger.",
-        "Tiens en respirant (ne bloque pas la respiration)."
+        "Tiens en respirant (ne bloque pas la respiration). Les deux bras travaillent en même temps."
       ],
       facile: "Tirer à moitié de ta force.",
       difficile: "Changer d'angle (coudes à 45°, puis 120°)."
