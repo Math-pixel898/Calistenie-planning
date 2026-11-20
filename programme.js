@@ -644,15 +644,15 @@ const PROGRAMME = {
       note: "Sans haltères, les biceps sont difficiles à charger : la barre (tractions supination) sera plus efficace plus tard."
     },
     "curl-serviette": {
-      nom: "Curl isométrique serviette", type: "temps",
+      nom: "Curl isométrique serviette", type: "temps", parCote: true,
       muscles: { principaux: ["biceps"], secondaires: ["avantbras"] },
       series: { debut: 2, plein: 2 }, objectif: 15, plafond: 45, conseilPlafond: "Garde 45 s en tirant plus fort.", repos: [30, 45],
       niveau: "Facile à moyen",
       etapes: [
-        "Mets un pied sur le milieu d'une serviette, tiens un bout dans chaque main.",
-        "Coudes pliés à 90°.",
+        "Mets un pied sur une extrémité de la serviette, tiens l'autre bout d'une main.",
+        "Coude plié à 90°, collé au corps.",
         "Tire vers le haut le plus fort possible, sans bouger.",
-        "Tiens en respirant (ne bloque pas la respiration). Les deux bras travaillent en même temps."
+        "Tiens en respirant (ne bloque pas la respiration), puis change de bras."
       ],
       facile: "Tirer à moitié de ta force.",
       difficile: "Changer d'angle (coudes à 45°, puis 120°)."

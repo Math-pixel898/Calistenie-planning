@@ -314,7 +314,7 @@ const ILLUSTRATIONS = (() => {
     },
     "curl-serviette": {
       recherche: "towel bicep curl isometric",
-      legende: "Un pied sur la serviette, un bout dans chaque main, coudes à 90° : les deux bras tirent vers le haut en même temps, sans bouger.",
+      legende: "Un pied sur la serviette, un bras tire vers le haut, coude à 90°, sans bouger. Puis l'autre bras.",
       accessoires: [{ t: "serviette", de: "main0", a: "pied0" }],
       poses: [{ hanche: [100, 62], tronc: -90, bras: [[90, 0], [92, 2]], jambes: [{ c: [108, SOL], s: -1 }, { c: [96, SOL], s: -1 }], pied: 0 }]
     },
