@@ -128,6 +128,71 @@ const PROGRAMME = {
         { nom: "Appui progressif à quatre pattes", secondes: 50,
           consigne: "À genoux, mains à plat sous les épaules, doigts vers l'avant. Avance et recule doucement le poids du corps au-dessus des mains, sans forcer." }
       ]
+    },
+    bras: {
+      nom: "Échauffement bras, coudes et poignets",
+      mouvements: [
+        { nom: "Cercles de bras", secondes: 40,
+          consigne: "Bras tendus sur les côtés, petits cercles qui grandissent peu à peu : 20 s vers l'avant, 20 s vers l'arrière." },
+        { nom: "Cercles de poignets", secondes: 40,
+          consigne: "Bras devant toi, cercles lents avec les poignets : 20 s dans un sens, 20 s dans l'autre." },
+        { nom: "Coudes : plier / tendre", secondes: 30,
+          consigne: "Bras le long du corps, plie et tends les coudes lentement, sans charge, comme un curl à vide." },
+        { nom: "Ouvrir / fermer les mains", secondes: 30,
+          consigne: "Ferme le poing doucement, puis ouvre grand la main en écartant les doigts. Rythme calme." }
+      ]
+    },
+    jambes: {
+      nom: "Échauffement jambes et hanches",
+      mouvements: [
+        { nom: "Marche sur place", secondes: 30,
+          consigne: "Marche sur place en montant un peu les genoux, rythme tranquille, pour réchauffer le corps." },
+        { nom: "Cercles de hanches", secondes: 30,
+          consigne: "Mains sur les hanches, pieds écartés, grands cercles avec le bassin : 15 s dans chaque sens." },
+        { nom: "Squats lents, sans effort", secondes: 40,
+          consigne: "Descends doucement, comme pour t'asseoir sur une chaise, aussi bas que c'est confortable, puis remonte. Sans forcer." },
+        { nom: "Chevilles", secondes: 40,
+          consigne: "Une main au mur, sur une jambe : cercles avec le pied levé, 20 s, puis change de jambe." }
+      ]
+    },
+    abdos: {
+      nom: "Échauffement dos et bassin",
+      mouvements: [
+        { nom: "Marche sur place", secondes: 30,
+          consigne: "Marche sur place tranquillement pour réchauffer le corps." },
+        { nom: "Rotations du buste", secondes: 30,
+          consigne: "Debout, pieds écartés, bras relâchés : tourne doucement le buste de gauche à droite." },
+        { nom: "Chat-vache", secondes: 40,
+          consigne: "À quatre pattes : arrondis le dos en rentrant le ventre, puis creuse doucement, au rythme de ta respiration." },
+        { nom: "Bascule du bassin", secondes: 30,
+          consigne: "Allongé sur le dos, genoux pliés : plaque le bas du dos au sol en rentrant le ventre, puis relâche, doucement." }
+      ]
+    },
+    "dos-barre": {
+      nom: "Échauffement épaules, dos et prise",
+      mouvements: [
+        { nom: "Cercles d'épaules et de bras", secondes: 40,
+          consigne: "Bras tendus sur les côtés, cercles qui grandissent : 20 s vers l'avant, 20 s vers l'arrière." },
+        { nom: "Rotations du buste", secondes: 30,
+          consigne: "Debout, pieds écartés, bras relâchés : tourne doucement le buste de gauche à droite." },
+        { nom: "Cercles de poignets", secondes: 30,
+          consigne: "Cercles lents avec les poignets : 15 s dans un sens, 15 s dans l'autre." },
+        { nom: "Suspensions légères, pieds au sol", secondes: 40,
+          consigne: "Mains sur la barre, pieds au sol : laisse-toi pendre un peu en relâchant les épaules, 3 ou 4 fois 5 secondes. Si la barre est mouillée et glisse, passe ce mouvement." }
+      ]
+    },
+    "dos-maison": {
+      nom: "Échauffement épaules et dos",
+      mouvements: [
+        { nom: "Cercles d'épaules et de bras", secondes: 40,
+          consigne: "Bras tendus sur les côtés, cercles qui grandissent : 20 s vers l'avant, 20 s vers l'arrière." },
+        { nom: "Rotations du buste", secondes: 30,
+          consigne: "Debout, pieds écartés, bras relâchés : tourne doucement le buste de gauche à droite." },
+        { nom: "Chat-vache", secondes: 40,
+          consigne: "À quatre pattes : arrondis le dos en rentrant le ventre, puis creuse doucement, au rythme de ta respiration." },
+        { nom: "Bascule du bassin", secondes: 30,
+          consigne: "Allongé sur le dos, genoux pliés : plaque le bas du dos au sol en rentrant le ventre, puis relâche, doucement." }
+      ]
     }
   },
 
@@ -171,26 +236,26 @@ const PROGRAMME = {
                   "pompes-diamant", "chenille", "pompes-piquees"]
     },
     "abdos": {
-      nom: "Abdos / gainage", categorie: "abdos", etirements: ["cobra", "posture-enfant"],
+      nom: "Abdos / gainage", categorie: "abdos", echauffement: "abdos", etirements: ["cobra", "posture-enfant"],
       exercices: ["dead-bug", "planche", "planche-laterale",
                   "releves-jambes", "position-creuse", "grimpeurs-lents"]
     },
     "jambes": {
-      nom: "Jambes", categorie: "jambes", etirements: ["quadriceps-debout", "ischios-assis"],
+      nom: "Jambes", categorie: "jambes", echauffement: "jambes", etirements: ["quadriceps-debout", "ischios-assis"],
       exercices: ["squat", "fentes-arriere", "pont-fessier",
                   "chaise-mur", "fentes-laterales", "mollets"]
     },
     "dos-barre": {
-      nom: "Dos — à la barre (dehors)", categorie: "dos", etirements: ["dorsaux-support", "epaules-bras-croise"],
+      nom: "Dos — à la barre (dehors)", categorie: "dos", echauffement: "dos-barre", etirements: ["dorsaux-support", "epaules-bras-croise"],
       exercices: ["suspension-passive", "tirages-omoplates", "tractions-negatives",
                   "tractions-australiennes", "superman"]
     },
     "dos-maison": {
-      nom: "Dos — à la maison", categorie: "dos", etirements: ["posture-enfant", "epaules-bras-croise"],
+      nom: "Dos — à la maison", categorie: "dos", echauffement: "dos-maison", etirements: ["posture-enfant", "epaules-bras-croise"],
       exercices: ["superman", "rowing-sac", "ytw", "anges-inverses", "ecartement-serviette"]
     },
     "bras": {
-      nom: "Bras", categorie: "bras", etirements: ["triceps-tete", "biceps-mur"],
+      nom: "Bras", categorie: "bras", echauffement: "bras", etirements: ["triceps-tete", "biceps-mur"],
       exercices: ["pompes-serrees", "dips-chaise", "curl-sac",
                   "curl-serviette", "pompes-sphinx", "pompes-doigts"]
     },

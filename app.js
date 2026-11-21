@@ -1194,14 +1194,23 @@ function pagePlanning() {
 }
 
 // ----- Échauffement (en haut des séances qui en ont un) -----
-let etapeEchauffement = null; // numéro du mouvement en cours (null = pas commencé)
+// L'état est gardé PAR échauffement et par jour : faire celui des poignets ne cache pas celui des jambes.
+let etapeEchauffement = null; // { id, index } : le mouvement en cours (null = rien en cours)
+
+function etatEchauffement(id) {
+  const v = donnees.echauffements?.[aujourdhuiISO()];
+  if (typeof v === "string") return id === "poignets" ? v : null; // anciennes données
+  return v?.[id] || null;
+}
 
 function carteEchauffement(seance) {
-  const ech = PROGRAMME.echauffements?.[seance.echauffement];
+  const id = seance.echauffement;
+  const ech = PROGRAMME.echauffements?.[id];
   if (!ech) return "";
-  const etat = donnees.echauffements[aujourdhuiISO()];
+  const etat = etatEchauffement(id);
+  const cours = etapeEchauffement?.id === id ? etapeEchauffement.index : null;
   const total = ech.mouvements.reduce((a, m) => a + m.secondes, 0);
-  if (etat && etapeEchauffement === null) {
+  if (etat && cours === null) {
     return `<div class="carte echauffement replie">
         <span>${etat === "fait" ? "✅ Échauffement fait aujourd'hui" : "⏭️ Échauffement passé"}</span>
         <button class="lien" id="ech-commencer">${etat === "fait" ? "Refaire" : "Le faire"}</button>
@@ -1210,11 +1219,11 @@ function carteEchauffement(seance) {
   return `<div class="carte echauffement">
       <h3>🔥 ${esc(ech.nom)} <span class="doux">· ~${Math.ceil(total / 60)} min</span></h3>
       <ol class="mouvements">${ech.mouvements.map((m, k) => `
-        <li class="${k === etapeEchauffement ? "en-cours" : k < (etapeEchauffement ?? 0) ? "fait" : ""}">
+        <li class="${k === cours ? "en-cours" : cours !== null && k < cours ? "fait" : ""}">
           <strong>${esc(m.nom)}</strong> <span class="doux">· ${m.secondes} s</span><br>
           <span class="doux">${esc(m.consigne)}</span></li>`).join("")}
       </ol>
-      ${etapeEchauffement === null ? `<div class="rangee">
+      ${cours === null ? `<div class="rangee">
           <button class="bouton petit" id="ech-commencer">▶ Commencer</button>
           <button class="bouton petit secondaire" id="ech-passer">Passer</button>
         </div>` : `<button class="bouton petit secondaire" id="ech-arreter">Arrêter l'échauffement</button>`}
@@ -1222,18 +1231,23 @@ function carteEchauffement(seance) {
 }
 
 function brancherEchauffement(seance) {
-  const ech = PROGRAMME.echauffements?.[seance.echauffement];
+  const id = seance.echauffement;
+  const ech = PROGRAMME.echauffements?.[id];
   if (!ech) return;
   const finir = etat => {
     etapeEchauffement = null;
-    donnees.echauffements[aujourdhuiISO()] = etat;
+    const jour = aujourdhuiISO();
+    const actuel = donnees.echauffements[jour];
+    const obj = typeof actuel === "string" ? { poignets: actuel } : (actuel || {});
+    obj[id] = etat;
+    donnees.echauffements[jour] = obj;
     sauverDonnees();
     afficher({ garderDefilement: true });
   };
   // Lance le mouvement k ; à la fin du minuteur, on passe au suivant
   const lancer = k => {
     if (k >= ech.mouvements.length) { toast("Échauffement terminé 👍"); finir("fait"); return; }
-    etapeEchauffement = k;
+    etapeEchauffement = { id, index: k };
     const m = ech.mouvements[k];
     preparerMinuteur({ titre: `${k + 1}/${ech.mouvements.length} · ${m.nom}`, secondes: m.secondes, lancer: true, ensuite: () => lancer(k + 1) });
     afficher({ garderDefilement: true });
