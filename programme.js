@@ -1157,7 +1157,7 @@ const PROGRAMME = {
     "grip-normale": {
       nom: "Gripper — position normale", type: "reps", parCote: true,
       muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
-      series: { debut: 2, plein: 4 }, objectif: 5, max: 8, repos: [60, 120],
+      series: { debut: 2, plein: 4 }, objectif: 5, max: 7, repos: [60, 120],
       niveau: "Haute résistance", chargeKg: 10,
       etapes: [
         "Doigts le plus bas possible sur la poignée du haut, serrés.",
@@ -1171,7 +1171,7 @@ const PROGRAMME = {
     "grip-inversee": {
       nom: "Gripper — position inversée", type: "reps", parCote: true, variante: true,
       muscles: { principaux: ["avantbras", "mains"], secondaires: [] },
-      series: { debut: 2, plein: 3 }, objectif: 6, max: 10, repos: [60, 120],
+      series: { debut: 2, plein: 3 }, objectif: 6, max: 9, repos: [60, 120],
       niveau: "Basse résistance", chargeKg: 8,
       etapes: [
         "Retourne le gripper dans la main (à l'envers par rapport à la position normale).",

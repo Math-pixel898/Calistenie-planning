@@ -66,12 +66,12 @@ const baisse = l => l.a.sens === "baisser";
 {
   const jours = [0, 3, 7, 10, 14, 17, 21, 24, 28, 31, 35];
   const l = scenario("1. Gripper : tout réussi",
-    "Tu réussis l'objectif à chaque séance (2 par semaine). Les reps montent d'1 toutes les 2 séances réussies jusqu'au plafond (8), puis il faut 2 semaines et 4 séances au plafond avant +1 kg.",
+    "Tu réussis l'objectif à chaque séance (2 par semaine). Les reps montent d'1 toutes les 2 séances réussies jusqu'au plafond (7), puis il faut 2 semaines et 4 séances au plafond avant +1 kg.",
     "grip-normale", jours.map(j => ({ jour: j })));
   verifier(!monte(l[0]) && monte(l[1]) && l[1].a.changement.objectif === 6, "1 — +1 rep seulement après 2 séances réussies (5 → 6)");
   verifier(l.every(x => !x.a.changement || !x.a.changement.objectif || x.a.changement.chargeKg !== undefined || x.a.changement.objectif - x.e.objectif === 1), "1 — les reps montent toujours d'1 seule rep");
   const montees = l.filter(x => x.a.changement?.chargeKg !== undefined);
-  verifier(montees.length === 1 && montees[0].jour === 35, "1 — +1 kg seulement au jour 35 (2 semaines et 4 séances au plafond de 8)");
+  verifier(montees.length === 1 && montees[0].jour === 28, "1 — +1 kg seulement au jour 28 (2 semaines et 4 séances au plafond de 7)");
   verifier(montees[0]?.a.changement.chargeKg === 11 && montees[0]?.a.changement.objectif === 5, "1 — un seul cran (10 → 11 kg) et l'objectif revient à 5");
 }
 
@@ -120,7 +120,7 @@ const baisse = l => l.a.sens === "baisser";
   const l = scenario("5. Gripper : séances espacées au plafond",
     "Au plafond de reps, 2 séances à 14 jours d'écart ne suffisent pas : il en faut au moins 4.",
     "grip-normale", [{ jour: 0 }, { jour: 14 }, { jour: 17 }, { jour: 21 }],
-    { preparer: () => { donnees.ajustements["grip-normale"] = { objectif: 8 }; } });
+    { preparer: () => { donnees.ajustements["grip-normale"] = { objectif: 7 }; } });
   verifier(l.slice(0, 3).every(x => !x.a.changement?.chargeKg), "5 — pas de +1 kg avec seulement 2 ou 3 séances au plafond");
   verifier(l[3].a.changement?.chargeKg === 11, "5 — +1 kg à la 4e séance au plafond (plus de 2 semaines)");
 }
@@ -129,7 +129,7 @@ const baisse = l => l.a.sens === "baisser";
 {
   const l = scenario("6. Gripper au maximum (12 kg)", "Au maximum du gripper, l'app ne propose plus de monter.",
     "grip-normale", [0, 3, 7, 10, 14].map(j => ({ jour: j })),
-    { preparer: () => { donnees.ajustements["grip-normale"] = { chargeKg: 12, objectif: 8 }; } });
+    { preparer: () => { donnees.ajustements["grip-normale"] = { chargeKg: 12, objectif: 7 }; } });
   verifier(l.every(x => !x.a.changement || (x.a.changement.chargeKg ?? 12) <= 12), "6 — jamais au-dessus de 12 kg");
   verifier(/maximale/.test(l[4].a.titre), "6 — message « charge maximale atteinte »");
 }
