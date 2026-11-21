@@ -270,7 +270,7 @@ function analyser(idExo) {
   const liste = entreesDe(idExo);
   if (!exo || liste.length === 0) return null;
   const derniere = liste[liste.length - 1];
-  const p = prevu(idExo);
+  const actuel = prevu(idExo);
   const u = unite(exo);
   const pas = exo.type === "temps" ? REGLES.pasSecondes : REGLES.pasReps;
   const obj = objectifDe(derniere);
@@ -278,9 +278,15 @@ function analyser(idExo) {
   const base = { entree: derniere };
 
   // Si un ajustement a déjà été fait depuis cette séance, on ne repropose rien
-  const dejaAjuste = !memeNiveau(derniere, { chargeKg: p.chargeKg, objectif: p.objectif, version: p.version })
+  const dejaAjuste = !memeNiveau(derniere, { chargeKg: actuel.chargeKg, objectif: actuel.objectif, version: actuel.version })
     || !!donnees.remplacements?.[idExo]; // déjà remplacé par une variante plus dure
   const traitee = donnees.propositionsTraitees[derniere.id] || (dejaAjuste ? "acceptee" : null);
+
+  // Le niveau de référence est celui de la séance analysée : une fois la proposition acceptée,
+  // l'explication continue de décrire CE changement (5 → 6), pas le suivant (6 → 7).
+  const p = dejaAjuste
+    ? { ...actuel, objectif: obj, chargeKg: derniere.chargeKg, version: derniere.version || "normale" }
+    : actuel;
 
   // ----- Trop dur : proposer de baisser un peu -----
   if (tropDur(derniere)) {
@@ -400,7 +406,7 @@ function analyser(idExo) {
 
 function accepterProposition(idExo) {
   const a = analyser(idExo);
-  if (!a || !a.changement) return;
+  if (!a || !a.changement || a.traitee) return; // rien à accepter, ou déjà traité
   const avant = prevu(idExo);
   if (a.changement.remplacement) {
     donnees.remplacements = donnees.remplacements || {};
