@@ -165,7 +165,11 @@ const PROGRAMME = {
         { nom: "Chat-vache", secondes: 40,
           consigne: "À quatre pattes : arrondis le dos en rentrant le ventre, puis creuse doucement, au rythme de ta respiration." },
         { nom: "Bascule du bassin", secondes: 30,
-          consigne: "Allongé sur le dos, genoux pliés : plaque le bas du dos au sol en rentrant le ventre, puis relâche, doucement." }
+          consigne: "Allongé sur le dos, genoux pliés : plaque le bas du dos au sol en rentrant le ventre, puis relâche, doucement." },
+        { nom: "Tapotements de talons · série 1", secondes: 40,
+          consigne: "Allongé sur le dos, genoux pliés à 90° en l'air, bas du dos écrasé au sol (glisse une main dessous pour vérifier). Descends lentement un talon toucher le sol, remonte, puis l'autre. Seul objectif : le dos ne décolle jamais." },
+        { nom: "Tapotements de talons · série 2", secondes: 40,
+          consigne: "Pareil : souffle en descendant le talon, côtes rentrées, bas du dos collé. Si le dos décolle, descends le talon moins loin." }
       ]
     },
     "dos-barre": {
