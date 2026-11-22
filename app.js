@@ -224,14 +224,35 @@ function annulerEntree(id) {
   sauverDonnees();
 }
 
-function entreesDe(idExo) {
-  return donnees.journal.filter(e => e.exo === idExo)
-    .sort((a, b) => a.date.localeCompare(b.date));
+// Index du journal, pour ne pas relire toutes les séances à chaque calcul.
+// Il est reconstruit seulement quand le journal change (ajout, annulation, import).
+let indexJournal = { journal: null, taille: -1, parExo: new Map(), parJour: new Map() };
+function index() {
+  const j = donnees.journal;
+  const dernier = j.length ? j[j.length - 1].date : null;
+  if (indexJournal.journal === j && indexJournal.taille === j.length && indexJournal.dernier === dernier) return indexJournal;
+  const parExo = new Map(), parJour = new Map();
+  for (const e of j) {
+    if (!parExo.has(e.exo)) parExo.set(e.exo, []);
+    parExo.get(e.exo).push(e);
+    const jour = aujourdhuiISO(new Date(e.date));
+    if (!parJour.has(jour)) parJour.set(jour, []);
+    parJour.get(jour).push(e);
+  }
+  for (const liste of parExo.values()) liste.sort((a, b) => a.date.localeCompare(b.date));
+  indexJournal = { journal: j, taille: j.length, dernier, parExo, parJour };
+  return indexJournal;
 }
 
+function entreesDe(idExo) {
+  return (index().parExo.get(idExo) || []).slice();
+}
+
+// Les exercices notés un jour donné ("2026-11-22")
+const entreesDuJour = jour => index().parJour.get(jour) || [];
+
 function faitAujourdhui(idExo) {
-  const jour = aujourdhuiISO();
-  return donnees.journal.some(e => e.exo === idExo && aujourdhuiISO(new Date(e.date)) === jour);
+  return entreesDuJour(aujourdhuiISO()).some(e => e.exo === idExo);
 }
 
 // Le résultat d'une saisie détaillée, déduit des chiffres
@@ -613,9 +634,7 @@ function planSemaine(lundi = lundiDe()) {
 function seanceFaiteLe(idSeance, dateISO) {
   const s = PROGRAMME.seances[idSeance];
   if (!s) return false;
-  const faits = new Set(donnees.journal
-    .filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO)
-    .map(e => e.exo));
+  const faits = new Set(entreesDuJour(dateISO).filter(e => e.seance === idSeance).map(e => e.exo));
   return faits.size >= Math.ceil(exercicesDe(idSeance).length / 2);
 }
 
@@ -1136,7 +1155,7 @@ function lienSeance(idSeance, dateISO = aujourdhuiISO()) {
   const s = PROGRAMME.seances[idSeance];
   if (!s) return `<div class="lien-seance">⚠️ Séance « ${esc(idSeance)} » introuvable dans programme.js</div>`;
   const cat = PROGRAMME.categories[s.categorie] || { emoji: "•" };
-  const faits = new Set(donnees.journal.filter(e => e.seance === idSeance && aujourdhuiISO(new Date(e.date)) === dateISO).map(e => e.exo)).size;
+  const faits = new Set(entreesDuJour(dateISO).filter(e => e.seance === idSeance).map(e => e.exo)).size;
   const total = exercicesDe(idSeance).length;
   const etat = faits === 0 ? "" : faits >= total ? " · ✅" : ` · ${faits}/${total}`;
   return `<a class="lien-seance" href="#/seance/${idSeance}">
@@ -2039,6 +2058,8 @@ function brancherSuivi(idSeance, idExo, entreeJuste) {
 }
 
 // ----- Historique -----
+let joursHistoriqueAffiches = 20; // nombre de jours d'entraînement affichés dans « Séances passées »
+
 function pageHistorique(idExoChoisi) {
   if (donnees.journal.length === 0) {
     return { titre: "Historique", html: carteRegularite() + `<div class="carte doux">Pas encore d'exercice enregistré. Fais un exercice et appuie sur un des trois boutons : il apparaîtra ici.</div>`, apres: brancherGraphiques };
@@ -2076,17 +2097,20 @@ function pageHistorique(idExoChoisi) {
         : (a.avant.objectif ?? a.avant.cible?.join("-")) + " → " + (a.apres.objectif ?? a.apres.cible?.join("-")) + " " + unite(exo)}</div>`).join("")}</div>`;
   }
 
-  // Séances passées, regroupées par jour
+  // Séances passées, regroupées par jour (les plus récentes d'abord, par paquets de 20 jours)
   html += `<h2 class="section">Séances passées</h2>`;
-  const parJour = {};
-  for (const e of donnees.journal) (parJour[aujourdhuiISO(new Date(e.date))] ||= []).push(e);
-  for (const jour of Object.keys(parJour).sort().reverse()) {
-    html += `<div class="carte"><h3>${majuscule(dateCourte(jour + "T12:00:00"))}</h3>${parJour[jour].map(e => {
+  const parJour = index().parJour;
+  const tousLesJours = [...parJour.keys()].sort().reverse();
+  for (const jour of tousLesJours.slice(0, joursHistoriqueAffiches)) {
+    html += `<div class="carte"><h3>${majuscule(dateCourte(jour + "T12:00:00"))}</h3>${parJour.get(jour).map(e => {
       const x = PROGRAMME.exercices[e.exo];
       if (!x) return "";
       return `<div class="ligne-histo">${RESULTATS[e.resultat].emoji} <a href="#/historique/${e.exo}">${esc(x.nom)}</a>
         <span class="doux">— ${e.series ? e.series.join("/") + " " + unite(x) : "sans détail"}${e.chargeKg != null ? " · " + kg(e.chargeKg) : ""}${e.douleur?.length ? " · 🩹 " + e.douleur.join(", ") : ""}</span></div>`;
     }).join("")}</div>`;
+  }
+  if (tousLesJours.length > joursHistoriqueAffiches) {
+    html += `<button class="bouton secondaire" id="voir-plus">Voir plus (${tousLesJours.length - joursHistoriqueAffiches} jours plus anciens)</button>`;
   }
 
   return {
@@ -2094,6 +2118,7 @@ function pageHistorique(idExoChoisi) {
     apres: () => {
       $("#choix-exo").onchange = e => { location.hash = "#/historique/" + e.target.value; };
       brancherGraphiques();
+      $("#voir-plus") && ($("#voir-plus").onclick = () => { joursHistoriqueAffiches += 20; afficher({ garderDefilement: true }); });
     }
   };
 }
